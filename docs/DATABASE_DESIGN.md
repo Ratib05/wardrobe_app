@@ -182,3 +182,24 @@ For example, wardrobe gaps should initially be calculated from the current wardr
 Final column types, indexes, constraints, and Drift table definitions should be confirmed during implementation.
 
 Use indexes for frequently searched or joined fields when testing shows they are beneficial.
+## 9. Implemented Schema (version 1)
+
+Defined in `lib/database/app_database.dart`. Where this differs from the tables above, this section is authoritative.
+
+- All six tables are created in schema version 1. The snapshot is stored in `drift_schemas/`; later changes need `schemaVersion` bumped, `dart run drift_dev make-migrations`, a `stepByStep` migration, and `flutter test test/drift`.
+- IDs are UUID v4 strings. Timestamps are stored as ISO-8601 text. Prices are stored as integer cents (`target_price_cents`).
+- Single-valued enums are stored as the enum name. Multi-valued attributes (`secondary_colours`, `style_tags`, `seasons`, `occasions`, `preferred_colours`) are stored as a sorted JSON array of enum names; unknown names are ignored when reading.
+- `outfit_items` has no `role` column (it is derived from the item's category). Primary key is (`outfit_id`, `clothing_item_id`).
+- `user_preferences` is keyed on (`preference_type`, `preference_value`) with `created_at`; there is no `id`, `weight` or `updated_at`.
+- `outfits.rating` is limited to 1-5 and `wishlist_items.target_price_cents` to values of 0 or more by CHECK constraints.
+- Foreign keys are enforced (`PRAGMA foreign_keys = ON` on every open).
+
+Deletion rules:
+
+| Relationship | On delete |
+|---|---|
+| `outfit_items.outfit_id` -> `outfits` | CASCADE |
+| `outfit_items.clothing_item_id` -> `clothing_items` | CASCADE (the outfit is kept, the item is removed from it) |
+| `wishlist_items.purchased_item_id` -> `clothing_items` | SET NULL |
+
+The delete dialog tells the user how many outfits an item is in and offers "Archive instead".

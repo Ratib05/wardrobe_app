@@ -1,10 +1,12 @@
 import 'package:drift/drift.dart';
 
+import '../core/clothing_item.dart';
+import '../core/wardrobe_values.dart';
 import 'app_database.dart';
 
 part 'clothing_dao.g.dart';
 
-@DriftAccessor(tables: [ClothingItems])
+@DriftAccessor(tables: [ClothingItems, OutfitItems])
 class ClothingDao extends DatabaseAccessor<AppDatabase>
     with _$ClothingDaoMixin {
   ClothingDao(super.db);
@@ -17,4 +19,50 @@ class ClothingDao extends DatabaseAccessor<AppDatabase>
       ..where(clothingItems.isArchived.equals(false));
     return query.map((row) => row.read(count) ?? 0).watchSingle();
   }
+
+  Stream<List<ClothingItem>> watchItems({required bool archived}) => (select(
+    clothingItems,
+  )..where((t) => t.isArchived.equals(archived))).watch();
+
+  Future<ClothingItem?> getById(String id) =>
+      (select(clothingItems)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  /// Not archived and not marked Needs repair.
+  Future<List<ClothingItem>> availableItems() =>
+      (select(clothingItems)..where(
+            (t) =>
+                t.isArchived.equals(false) &
+                t.condition.equalsValue(ItemCondition.needsRepair).not(),
+          ))
+          .get();
+
+  Future<void> upsert(ClothingItem item) =>
+      into(clothingItems).insertOnConflictUpdate(item.toInsertable());
+
+  Future<void> setArchived(String id, bool archived, DateTime now) =>
+      (update(clothingItems)..where((t) => t.id.equals(id))).write(
+        ClothingItemsCompanion(
+          isArchived: Value(archived),
+          updatedAt: Value(now),
+        ),
+      );
+
+  Future<void> setFavourite(String id, bool favourite, DateTime now) =>
+      (update(clothingItems)..where((t) => t.id.equals(id))).write(
+        ClothingItemsCompanion(
+          isFavourite: Value(favourite),
+          updatedAt: Value(now),
+        ),
+      );
+
+  Future<int> outfitCount(String id) {
+    final count = outfitItems.outfitId.count();
+    final query = selectOnly(outfitItems)
+      ..addColumns([count])
+      ..where(outfitItems.clothingItemId.equals(id));
+    return query.map((row) => row.read(count) ?? 0).getSingle();
+  }
+
+  Future<void> deleteById(String id) =>
+      (delete(clothingItems)..where((t) => t.id.equals(id))).go();
 }

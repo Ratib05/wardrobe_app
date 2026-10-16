@@ -114,3 +114,12 @@ Clothing management, outfit creation, recommendations, wishlist management, and 
 - Do not upload wardrobe photos or metadata automatically.
 - Do not include credentials or unrelated personal files in backups.
 - Treat exported backups as private data.
+## 11. Implemented Layout and Photo Handling
+
+- All data lives under `getApplicationSupportDirectory()` (see `lib/services/storage_paths.dart`):
+  `data/wardrobe.db`, `images/clothing/<uuid>.jpg`, `temporary/`. `temporary/` is emptied at every startup. There is no `images/outfits/` folder because outfit photos are not a planned feature.
+- Image paths are resolved through `StoragePaths.imageFile`, which rejects any path outside `images/`.
+- Photo import (`lib/services/image_storage.dart`): files over 50 MB are rejected; the image is decoded, rotated upright from its EXIF orientation, shrunk to at most 1600 px on the longest side, stripped of all metadata (including GPS location) and saved as a JPEG (quality 85) in `temporary/`. Saving the item moves it into `images/clothing/` under a new UUID name; a new name per photo version avoids stale image caches.
+- Unsupported images produce "This image format isn't supported. Use a JPEG, PNG or WebP photo."
+- The old photo file is deleted only after the database write succeeds. If the write fails, the new photo is removed.
+- `image_cropper` does not support Windows, so the Windows build has no cropping; grids show a centred crop.

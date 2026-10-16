@@ -17,14 +17,20 @@ const sections = [
 ];
 
 void main() {
-  testApp('wide layout uses NavigationRail and opens every section',
-      (tester, paths) async {
+  testApp('wide layout uses NavigationRail and opens every section', (
+    tester,
+    paths,
+  ) async {
     await pumpApp(tester, paths: paths);
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
     for (final s in sections) {
-      await tester.tap(find.descendant(
-          of: find.byType(NavigationRail), matching: find.text(s)));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationRail),
+          matching: find.text(s),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(
         find.descendant(of: find.byType(AppBar), matching: find.text(s)),
@@ -45,11 +51,14 @@ void main() {
     expect(find.text('0 items in your wardrobe'), findsOneWidget);
 
     final container = ProviderScope.containerOf(
-        tester.element(find.byType(WardrobeApp)));
-    await tester.runAsync(() => container
-        .read(appDatabaseProvider)
-        .into(container.read(appDatabaseProvider).clothingItems)
-        .insert(item(id: 'a').toInsertable()));
+      tester.element(find.byType(WardrobeApp)),
+    );
+    await tester.runAsync(
+      () => container
+          .read(appDatabaseProvider)
+          .into(container.read(appDatabaseProvider).clothingItems)
+          .insert(item(id: 'a').toInsertable()),
+    );
     await tester.pumpAndSettle();
     expect(find.text('1 item in your wardrobe'), findsOneWidget);
   });

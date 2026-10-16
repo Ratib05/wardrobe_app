@@ -55,8 +55,9 @@ class ClothingItems extends Table {
       text().map(occasionSet).withDefault(const Constant('[]'))();
   TextColumn get brand => text().nullable()();
   TextColumn get size => text().nullable()();
-  TextColumn get condition => textEnum<ItemCondition>()
-      .withDefault(Constant(ItemCondition.good.name))();
+  TextColumn get condition => textEnum<ItemCondition>().withDefault(
+    Constant(ItemCondition.good.name),
+  )();
   TextColumn get imagePath => text().nullable()();
   BoolColumn get isFavourite => boolean().withDefault(const Constant(false))();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
@@ -106,18 +107,22 @@ class WishlistItems extends Table {
   TextColumn get styleTags =>
       text().map(styleSet).withDefault(const Constant('[]'))();
   TextColumn get formality => textEnum<Formality>().nullable()();
-  IntColumn get targetPriceCents => integer()
-      .nullable()
+  IntColumn get targetPriceCents =>
+      integer().nullable()
       // ignore: recursive_getters
       .check(targetPriceCents.isBiggerOrEqualValue(0))();
-  TextColumn get priority => textEnum<WishlistPriority>()
-      .withDefault(Constant(WishlistPriority.medium.name))();
+  TextColumn get priority => textEnum<WishlistPriority>().withDefault(
+    Constant(WishlistPriority.medium.name),
+  )();
   TextColumn get reason => text().nullable()();
-  TextColumn get status => textEnum<WishlistStatus>()
-      .withDefault(Constant(WishlistStatus.planned.name))();
-  TextColumn get purchasedItemId => text()
-      .nullable()
-      .references(ClothingItems, #id, onDelete: KeyAction.setNull)();
+  TextColumn get status => textEnum<WishlistStatus>().withDefault(
+    Constant(WishlistStatus.planned.name),
+  )();
+  TextColumn get purchasedItemId => text().nullable().references(
+    ClothingItems,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
@@ -148,14 +153,17 @@ class RecommendationFeedback extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [
-  ClothingItems,
-  Outfits,
-  OutfitItems,
-  WishlistItems,
-  UserPreferences,
-  RecommendationFeedback,
-], daos: [ClothingDao])
+@DriftDatabase(
+  tables: [
+    ClothingItems,
+    Outfits,
+    OutfitItems,
+    WishlistItems,
+    UserPreferences,
+    RecommendationFeedback,
+  ],
+  daos: [ClothingDao],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -164,9 +172,9 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) => m.createAll(),
-        beforeOpen: (details) async {
-          await customStatement('PRAGMA foreign_keys = ON');
-        },
-      );
+    onCreate: (m) => m.createAll(),
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
+  );
 }

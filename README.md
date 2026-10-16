@@ -26,7 +26,9 @@ A private, local-first wardrobe management application built with Flutter and Da
 | go_router | Navigation |
 | path_provider | Local application storage paths |
 | image_picker | Image selection |
-| image_cropper | Image cropping |
+| image_cropper | Image cropping (Android only; not supported on Windows, so optional) |
+| image | Photo processing: rotate, resize, strip metadata |
+| file_selector, archive | Backup export/import and ZIP handling |
 | flutter_test | Unit and widget testing |
 | integration_test | Integration testing |
 

@@ -47,7 +47,11 @@ Backup and Restore Services
 - Riverpod: state management and dependency injection.
 - go_router: navigation.
 - image_picker: selecting or capturing images where supported.
-- image_cropper: cropping images.
+- image_cropper: cropping images. It does not support Windows, so it is not used in the Windows MVP and is only an optional addition for Android.
+- drift_flutter: opens the Drift database on each platform.
+- image: decoding, rotating, resizing and re-encoding photos (pure Dart, offline).
+- file_selector and archive: choosing backup locations and creating or extracting backup ZIP files.
+- package_info_plus: reading the app version for backup manifests.
 - path_provider: locating application storage directories.
 - uuid: portable identifiers where required.
 - flutter_test: unit and widget testing.

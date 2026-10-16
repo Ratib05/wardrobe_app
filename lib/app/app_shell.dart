@@ -15,27 +15,34 @@ class AppShell extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
-  void _select(int i) =>
-      navigationShell.goBranch(i, initialLocation: i == navigationShell.currentIndex);
+  void _select(int i) => navigationShell.goBranch(
+    i,
+    initialLocation: i == navigationShell.currentIndex,
+  );
 
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 600;
     if (wide) {
       return Scaffold(
-        body: Row(children: [
-          NavigationRail(
-            selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: _select,
-            labelType: NavigationRailLabelType.all,
-            destinations: [
-              for (final d in _destinations)
-                NavigationRailDestination(icon: Icon(d.icon), label: Text(d.label)),
-            ],
-          ),
-          const VerticalDivider(width: 1),
-          Expanded(child: navigationShell),
-        ]),
+        body: Row(
+          children: [
+            NavigationRail(
+              selectedIndex: navigationShell.currentIndex,
+              onDestinationSelected: _select,
+              labelType: NavigationRailLabelType.all,
+              destinations: [
+                for (final d in _destinations)
+                  NavigationRailDestination(
+                    icon: Icon(d.icon),
+                    label: Text(d.label),
+                  ),
+              ],
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(child: navigationShell),
+          ],
+        ),
       );
     }
     return Scaffold(

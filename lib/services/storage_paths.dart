@@ -27,7 +27,10 @@ class StoragePaths {
     final resolved = p.normalize(p.join(root.path, relativePath));
     if (!p.isWithin(imagesDir.path, resolved)) {
       throw ArgumentError.value(
-          relativePath, 'relativePath', 'Outside images folder');
+        relativePath,
+        'relativePath',
+        'Outside images folder',
+      );
     }
     return File(resolved);
   }

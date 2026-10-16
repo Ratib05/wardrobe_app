@@ -21,8 +21,8 @@ class _WardrobeAppState extends State<WardrobeApp> {
 
   @override
   Widget build(BuildContext context) => MaterialApp.router(
-        title: 'Wardrobe',
-        theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
-        routerConfig: _router,
-      );
+    title: 'Wardrobe',
+    theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
+    routerConfig: _router,
+  );
 }

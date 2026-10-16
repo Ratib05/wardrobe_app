@@ -33,6 +33,9 @@ void main() {
 
   test('imageFile rejects traversal', () {
     expect(() => paths.imageFile('../secret.txt'), throwsArgumentError);
-    expect(() => paths.imageFile('images/../data/wardrobe.db'), throwsArgumentError);
+    expect(
+      () => paths.imageFile('images/../data/wardrobe.db'),
+      throwsArgumentError,
+    );
   });
 }

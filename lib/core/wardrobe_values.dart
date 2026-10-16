@@ -13,7 +13,17 @@ enum ClothingCategory {
   final String label;
 }
 
-enum ColourFamily { neutral, red, pink, orange, yellow, green, blue, purple, multi }
+enum ColourFamily {
+  neutral,
+  red,
+  pink,
+  orange,
+  yellow,
+  green,
+  blue,
+  purple,
+  multi,
+}
 
 enum WardrobeColour {
   black('Black', ColourFamily.neutral, 0xFF111111),

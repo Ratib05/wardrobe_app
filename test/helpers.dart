@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:image/image.dart' as img;
+
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
@@ -8,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wardrobe_app/app/app.dart';
 import 'package:wardrobe_app/app/providers.dart';
 import 'package:wardrobe_app/database/app_database.dart';
+import 'package:wardrobe_app/services/platform_pickers.dart';
 import 'package:wardrobe_app/services/storage_paths.dart';
 import 'package:wardrobe_app/core/clothing_item.dart';
 import 'package:wardrobe_app/core/wardrobe_values.dart';
@@ -32,7 +35,8 @@ ClothingItem item({
   DateTime? createdAt,
 }) {
   final n = ++_counter;
-  final created = createdAt ?? DateTime.utc(2026, 1, 1).add(Duration(minutes: n));
+  final created =
+      createdAt ?? DateTime.utc(2026, 1, 1).add(Duration(minutes: n));
   return ClothingItem(
     id: id ?? 'item-$n',
     name: name,
@@ -92,17 +96,80 @@ void testApp(
 }
 
 /// Pumps the whole app against a real on-disk database in [paths].
-Future<void> pumpApp(WidgetTester tester, {required StoragePaths paths}) async {
+Future<void> pumpApp(
+  WidgetTester tester, {
+  required StoragePaths paths,
+  List<ClothingItem> items = const [],
+  Future<void> Function(AppDatabase db)? seed,
+  PlatformPickers? pickers,
+}) async {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   // Same-isolate database keeps widget tests in fake-async.
   final db = _openDb = AppDatabase(NativeDatabase(paths.databaseFile));
-  await tester.pumpWidget(ProviderScope(
-    retry: (_, _) => null,
-    overrides: [
-      storagePathsProvider.overrideWithValue(paths),
-      appDatabaseProvider.overrideWithValue(db),
-    ],
-    child: const WardrobeApp(),
-  ));
+  // Seed before any stream listener exists; sequential writes with live
+  // listeners stall under fake-async.
+  await tester.runAsync(() async {
+    for (final i in items) {
+      await db.clothingDao.upsert(i);
+    }
+    if (seed != null) await seed(db);
+  });
+  await tester.pumpWidget(
+    ProviderScope(
+      retry: (_, _) => null,
+      overrides: [
+        storagePathsProvider.overrideWithValue(paths),
+        appDatabaseProvider.overrideWithValue(db),
+      if (pickers != null) platformPickersProvider.overrideWithValue(pickers),
+      ],
+      child: const WardrobeApp(),
+    ),
+  );
   await tester.pumpAndSettle();
+}
+
+/// A small valid JPEG.
+Uint8List jpegBytes({int width = 64, int height = 32}) =>
+    Uint8List.fromList(img.encodeJpg(img.Image(width: width, height: height)));
+
+ProviderContainer containerOf(WidgetTester tester) =>
+    ProviderScope.containerOf(tester.element(find.byType(WardrobeApp)));
+
+/// Returns a fixed path from the "gallery".
+class FakePickers extends PlatformPickers {
+  FakePickers(this.imagePath);
+  String? imagePath;
+
+  @override
+  Future<String?> pickImagePath() async => imagePath;
+}
+
+/// Pumps (letting real IO/DB futures complete) until [finder] matches.
+Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 250; i++) {
+    if (finder.evaluate().isNotEmpty) return;
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+  }
+  fail('Timed out waiting for $finder');
+}
+
+/// Pumps until [finder] no longer matches.
+Future<void> pumpUntilGone(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 250; i++) {
+    if (finder.evaluate().isEmpty) return;
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+  }
+  fail('Timed out waiting for $finder to disappear');
+}
+
+/// Writes a small JPEG into [paths].root and returns its path.
+String writeTestJpeg(StoragePaths paths, [String name = 'photo.jpg']) {
+  final f = File('${paths.root.path}/$name')..writeAsBytesSync(jpegBytes());
+  return f.path;
 }
