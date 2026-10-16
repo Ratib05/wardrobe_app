@@ -210,7 +210,6 @@ personal-wardrobe/
 ├── assets/
 ├── pubspec.yaml
 ├── README.md
-├── AGENTS.md
 └── .gitignore
 ```
 
@@ -233,7 +232,7 @@ Project requirements, architecture, and implementation plans are maintained in t
 | `TESTING_PLAN.md` | Testing strategy and acceptance criteria |
 | `ROADMAP.md` | Planned development phases |
 
-`AGENTS.md` contains instructions and architectural constraints for AI coding assistants working on the repository.
+Instructions and architectural constraints for AI coding assistants are kept in a local, untracked `claude.md` at the repository root (excluded via `.gitignore`).
 
 ## Current Status
 
