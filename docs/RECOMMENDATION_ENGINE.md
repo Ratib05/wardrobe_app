@@ -104,3 +104,46 @@ Test:
 - Edge cases with very small wardrobes.
 
 Identical inputs and preferences should produce reproducible results.
+## 10. Implemented Rules (version 1)
+
+Code: `lib/features/recommendations/engine/` (pure Dart; no Flutter, database or service imports, enforced by a test). Where this section differs from the sections above, this section is authoritative.
+
+### Outfit templates
+- Top + bottom + footwear, with optional outerwear.
+- Dress/jumpsuit + footwear, with optional outerwear.
+- Accessories are never generated.
+
+### Eligible items
+Not archived, condition not "Needs repair" ("unavailable"), primary colour not in the user's avoided colours, and no avoided style tag.
+
+### Candidate generation
+- Each category is capped (15 items; outerwear 6). Favourites are kept first, then items matching the selected occasion, then the selected season, then by id.
+- Every combination of a template's required categories is built, once without outerwear and once with each outerwear item.
+- A combination is identified by its fingerprint: sorted item ids joined with `|`. Dismissed fingerprints are removed.
+- Results are ranked by score (highest first), ties broken by fingerprint, and the top 20 are returned. Identical inputs always give identical output.
+
+### Scoring (each factor 0 to 1; weighted sum)
+| Factor (weight) | Rule |
+|---|---|
+| Colour (25%) | Mean over item pairs of primary colours: either colour neutral 1.0; same colour or same colour family 0.8; clashing pair 0.0; otherwise 0.5. Clashing pairs: red-pink, red-orange, orange-pink, red-green, orange-purple. |
+| Occasion (20%) | Occasion selected: mean per item (tagged with it 1.0, tagged without it 0.0, untagged 0.5). None selected: 1.0 if all tagged items share an occasion, else 0.0. |
+| Formality (15%) | 1 - (highest level - lowest level) / 4. |
+| Style (15%) | Mean over pairs: share a style tag 1.0, else 0.0; a pair with an untagged item 0.5. |
+| Season (10%) | Same rule as occasion. |
+| Preferences (10%) | Share of items matching a preferred colour, style or formality. |
+| Feedback (5%) | Latest rating r gives (r - 1) / 4; otherwise liked, saved, or already a saved outfit gives 1.0. |
+
+**Missing data:** a factor that cannot be judged (fewer than two items with a value, untagged items, no preferences, no feedback) scores a neutral 0.5, so incomplete items are never treated as incompatible.
+
+### Explanations and labels
+- A factor supplies a reason only when it scores at least 0.75, and the wording matches the rule that produced it: "Colours are compatible", "All items suit {occasion}" (every item tagged) or "No item conflicts with {occasion}" (some items untagged), "Items share an occasion: {x}", "Formality levels are consistent", "Items share a style: {x}", "Suitable for {season}" / "No item conflicts with {season}" / "Items share a season: {x}", "Matches your preferences", "You rated this {r}/5", "You liked this combination".
+- The top three reasons by weighted contribution are shown; if none qualify the card says "Meets the basic outfit rules".
+- Labels: 0.75 and above "Strong match", 0.55 and above "Good match", otherwise "Possible match". Numeric scores are never shown.
+
+### Feedback
+- Save creates an outfit and records "saved"; Favourite creates a favourite outfit and records "liked"; Rate records a rating from 1 to 5.
+- Dismiss hides that combination permanently. It can be undone immediately, and Settings will offer "Reset dismissed recommendations".
+
+### Differences from the original specification
+- "Unavailable" is implemented as condition = "Needs repair".
+- Dismissed recommendations are hidden permanently instead of being ranked lower.

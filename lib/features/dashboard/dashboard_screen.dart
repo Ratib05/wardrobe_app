@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/widgets/clothing_photo.dart';
 import '../outfits/outfit_providers.dart';
+import '../recommendations/recommendations_providers.dart';
 import '../wardrobe/wardrobe_providers.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -16,6 +17,13 @@ class DashboardScreen extends ConsumerWidget {
     final favourites = [
       for (final o in ref.watch(outfitsProvider).value ?? const [])
         if (o.outfit.isFavourite) o,
+    ];
+    final suggestions = [
+      ...?ref
+          .watch(recommendationsProvider((occasion: null, season: null)))
+          .value
+          ?.recommendations
+          .take(3),
     ];
     final theme = Theme.of(context).textTheme;
     final recent = [...?items.value]
@@ -53,6 +61,17 @@ class DashboardScreen extends ConsumerWidget {
               ],
             ),
           ),
+          if (suggestions.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Text('Suggested outfits', style: theme.titleMedium),
+            for (final rec in suggestions)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(rec.items.map((i) => i.name).join(' + ')),
+                subtitle: Text('${rec.label.label} · ${rec.reasons.first}'),
+                onTap: () => context.go('/recommendations'),
+              ),
+          ],
           if (favourites.isNotEmpty) ...[
             const SizedBox(height: 24),
             Text('Favourite outfits', style: theme.titleMedium),

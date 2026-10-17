@@ -151,7 +151,7 @@ Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 20)),
     );
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
   }
   fail('Timed out waiting for $finder');
 }
@@ -163,7 +163,7 @@ Future<void> pumpUntilGone(WidgetTester tester, Finder finder) async {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 20)),
     );
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
   }
   fail('Timed out waiting for $finder to disappear');
 }

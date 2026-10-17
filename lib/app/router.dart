@@ -5,6 +5,7 @@ import '../features/dashboard/dashboard_screen.dart';
 import '../features/outfits/outfit_builder_screen.dart';
 import '../features/outfits/outfits_screen.dart';
 import '../features/recommendations/recommendations_screen.dart';
+import '../features/settings/preferences_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/wardrobe/clothing_form_screen.dart';
 import '../features/wardrobe/wardrobe_screen.dart';
@@ -69,7 +70,20 @@ GoRouter createRouter() => GoRouter(
         ),
         _branch('/recommendations', const RecommendationsScreen()),
         _branch('/wishlist', const WishlistScreen()),
-        _branch('/settings', const SettingsScreen()),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/settings',
+              builder: (context, state) => const SettingsScreen(),
+              routes: [
+                GoRoute(
+                  path: 'preferences',
+                  builder: (context, state) => const PreferencesScreen(),
+                ),
+              ],
+            ),
+          ],
+        ),
       ],
     ),
   ],

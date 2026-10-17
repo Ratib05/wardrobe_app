@@ -73,6 +73,18 @@ class OutfitDao extends DatabaseAccessor<AppDatabase> with _$OutfitDaoMixin {
         }
       });
 
+  /// Item ids of every saved outfit, keyed by outfit id.
+  Future<Map<String, List<String>>> itemIdsByOutfit() async {
+    final rows = await (select(
+      outfitItems,
+    )..orderBy([(t) => OrderingTerm.asc(t.position)])).get();
+    final result = <String, List<String>>{};
+    for (final r in rows) {
+      result.putIfAbsent(r.outfitId, () => []).add(r.clothingItemId);
+    }
+    return result;
+  }
+
   Future<void> deleteById(String id) =>
       (delete(outfits)..where((t) => t.id.equals(id))).go();
 

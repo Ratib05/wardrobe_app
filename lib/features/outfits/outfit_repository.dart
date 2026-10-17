@@ -5,6 +5,8 @@ import '../../core/app_exceptions.dart';
 import '../../core/wardrobe_values.dart';
 import '../../database/app_database.dart';
 import '../../database/outfit_dao.dart';
+import '../recommendations/engine/recommendation_engine.dart'
+    show outfitFingerprint;
 import 'outfit_rules.dart';
 
 export '../../database/outfit_dao.dart' show OutfitWithItems;
@@ -50,6 +52,12 @@ class OutfitRepository {
       itemIds,
     );
     return outfitId;
+  }
+
+  /// Fingerprints of every saved outfit's item combination.
+  Future<Set<String>> savedFingerprints() async {
+    final byOutfit = await _db.outfitDao.itemIdsByOutfit();
+    return {for (final ids in byOutfit.values) outfitFingerprint(ids)};
   }
 
   Future<void> delete(String id) => _db.outfitDao.deleteById(id);
