@@ -10,6 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wardrobe_app/app/app.dart';
 import 'package:wardrobe_app/app/providers.dart';
 import 'package:wardrobe_app/database/app_database.dart';
+import 'package:wardrobe_app/features/recommendations/engine/gap_analysis.dart';
+import 'package:wardrobe_app/features/wishlist/gap_providers.dart';
 import 'package:wardrobe_app/services/platform_pickers.dart';
 import 'package:wardrobe_app/services/storage_paths.dart';
 import 'package:wardrobe_app/core/clothing_item.dart';
@@ -120,6 +122,8 @@ Future<void> pumpApp(
       overrides: [
         storagePathsProvider.overrideWithValue(paths),
         appDatabaseProvider.overrideWithValue(db),
+        // Direct call: isolates don't complete inside fake-async.
+        gapRunnerProvider.overrideWithValue((r) async => analyseGaps(r)),
         if (pickers != null) platformPickersProvider.overrideWithValue(pickers),
       ],
       child: const WardrobeApp(),

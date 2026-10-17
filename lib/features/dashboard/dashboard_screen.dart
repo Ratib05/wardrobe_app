@@ -6,6 +6,7 @@ import '../../app/widgets/clothing_photo.dart';
 import '../outfits/outfit_providers.dart';
 import '../recommendations/recommendations_providers.dart';
 import '../wardrobe/wardrobe_providers.dart';
+import '../wishlist/gap_providers.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -24,6 +25,9 @@ class DashboardScreen extends ConsumerWidget {
           .value
           ?.recommendations
           .take(3),
+    ];
+    final gaps = [
+      ...?ref.watch(gapSuggestionsProvider).value?.suggestions.take(2),
     ];
     final theme = Theme.of(context).textTheme;
     final recent = [...?items.value]
@@ -70,6 +74,17 @@ class DashboardScreen extends ConsumerWidget {
                 title: Text(rec.items.map((i) => i.name).join(' + ')),
                 subtitle: Text('${rec.label.label} · ${rec.reasons.first}'),
                 onTap: () => context.go('/recommendations'),
+              ),
+          ],
+          if (gaps.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Text('Wardrobe gap ideas', style: theme.titleMedium),
+            for (final g in gaps)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(g.title),
+                subtitle: Text(g.explanation),
+                onTap: () => context.go('/wishlist/gaps'),
               ),
           ],
           if (favourites.isNotEmpty) ...[

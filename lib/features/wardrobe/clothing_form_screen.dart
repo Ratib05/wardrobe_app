@@ -12,13 +12,18 @@ import '../../core/app_exceptions.dart';
 import '../../core/clothing_item.dart';
 import '../../core/wardrobe_values.dart';
 import '../../services/image_storage.dart';
+import '../wishlist/wishlist_providers.dart';
 import 'wardrobe_providers.dart';
 
 /// Add a new item, or edit the item with [itemId].
 class ClothingFormScreen extends ConsumerStatefulWidget {
-  const ClothingFormScreen({super.key, this.itemId});
+  const ClothingFormScreen({super.key, this.itemId, this.fromWishlistId});
 
   final String? itemId;
+
+  /// When adding an item, prefill from this wishlist entry; saving then marks
+  /// the entry purchased and links the new item.
+  final String? fromWishlistId;
 
   @override
   ConsumerState<ClothingFormScreen> createState() => _ClothingFormScreenState();
@@ -64,7 +69,24 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
     if (_editing) {
       _loading = true;
       _load();
+    } else if (widget.fromWishlistId != null) {
+      _prefillFromWishlist();
     }
+  }
+
+  Future<void> _prefillFromWishlist() async {
+    final w = await ref
+        .read(wishlistRepositoryProvider)
+        .getById(widget.fromWishlistId!);
+    if (!mounted || w == null) return;
+    setState(() {
+      _name.text = w.name;
+      _subcategory.text = w.subcategory ?? '';
+      _category = w.category;
+      if (w.preferredColours.length == 1) _primary = w.preferredColours.first;
+      _styles = {...w.styleTags};
+      _formality = w.formality;
+    });
   }
 
   @override
@@ -186,9 +208,16 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
     );
     setState(() => _saving = true);
     try {
-      await ref
-          .read(clothingRepositoryProvider)
-          .save(item, stagedImage: _staged);
+      final wishlistId = widget.fromWishlistId;
+      if (wishlistId != null && !_editing) {
+        await ref
+            .read(wishlistRepositoryProvider)
+            .markPurchased(wishlistId, item, stagedImage: _staged);
+      } else {
+        await ref
+            .read(clothingRepositoryProvider)
+            .save(item, stagedImage: _staged);
+      }
       _staged = null; // committed
       if (mounted) _close();
     } on ValidationException catch (e) {

@@ -147,3 +147,29 @@ Not archived, condition not "Needs repair" ("unavailable"), primary colour not i
 ### Differences from the original specification
 - "Unavailable" is implemented as condition = "Needs repair".
 - Dismissed recommendations are hidden permanently instead of being ranked lower.
+
+## 11. Implemented Gap Analysis (version 1)
+
+Code: `lib/features/recommendations/engine/gap_analysis.dart` (pure Dart).
+
+### Which outfit types are analysed
+Only types you actually wear: top + bottom + footwear if you own an available top or bottom, and dress/jumpsuit + footwear if you own an available dress or jumpsuit. If you own none of those, the screen says "Add some clothing first". A missing category alone never produces a suggestion.
+
+### Candidate items
+Imaginary items for each category of the active templates (including outerwear, never accessories), in every colour of: neutral colours plus your preferred colours, minus your avoided colours; and in each formality level you already own (casual if none are recorded). Each candidate is added to the wardrobe and the outfits it would appear in are generated with the normal recommendation engine.
+
+### Needed vs. useful
+- **Needed:** you cannot complete any outfit today and this item would make at least one possible. All valid outfits it enables are counted, whatever their score, so this works even when attributes are not filled in.
+- **Useful:** you can already make outfits and this item would add at least three good outfits (Good or Strong match). Only those good outfits are counted.
+
+### Ordering and limits
+Needed first, then by the number of new outfits, then the number of distinct items it would pair with, then your preferred colours, then a fixed key order. At most two suggestions per category and ten overall. Identical inputs give identical results.
+
+### Wishlist interaction
+- "Add to wishlist" saves a planned wishlist entry with the explanation as its reason.
+- "Not for me" saves the same entry with status "dismissed" (deleting it from the Dismissed tab brings the suggestion back).
+- A suggestion is hidden when a wishlist entry of any status has the same category, colour and formality (an entry with one preferred colour matches that colour).
+
+### Differences from the original specification
+- Budget does not affect ranking, because imaginary items have no price.
+- Dismissed gap suggestions are stored as wishlist entries rather than in a separate table.

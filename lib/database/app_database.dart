@@ -7,6 +7,7 @@ import '../core/wardrobe_values.dart';
 import 'clothing_dao.dart';
 import 'outfit_dao.dart';
 import 'recommendation_dao.dart';
+import 'wishlist_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -164,7 +165,7 @@ class RecommendationFeedback extends Table {
     UserPreferences,
     RecommendationFeedback,
   ],
-  daos: [ClothingDao, OutfitDao, RecommendationDao],
+  daos: [ClothingDao, OutfitDao, RecommendationDao, WishlistDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);

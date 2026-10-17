@@ -3371,6 +3371,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final RecommendationDao recommendationDao = RecommendationDao(
     this as AppDatabase,
   );
+  late final WishlistDao wishlistDao = WishlistDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();

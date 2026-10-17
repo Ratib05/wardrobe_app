@@ -1,0 +1,244 @@
+// Wardrobe gap analysis: which items you do not own would add the most
+// outfits. Pure Dart (only lib/core and the sibling engine files).
+//
+// Candidate items are imaginary: a category in your outfit templates, a
+// colour (neutrals plus your preferred colours, minus avoided ones) and a
+// formality level you already own. Each is added to the wardrobe in turn and
+// the outfits it would appear in are counted. A missing category alone never
+// produces a suggestion.
+
+import '../../../core/clothing_item.dart';
+import '../../../core/outfit_templates.dart';
+import '../../../core/wardrobe_values.dart';
+import 'recommendation_engine.dart';
+import 'scoring.dart';
+
+enum GapKind { needed, useful }
+
+String gapKey(
+  ClothingCategory category,
+  WardrobeColour? colour,
+  Formality? formality,
+) => '${category.name}:${colour?.name ?? '-'}:${formality?.name ?? '-'}';
+
+class GapSuggestion {
+  const GapSuggestion({
+    required this.category,
+    required this.colour,
+    required this.formality,
+    required this.kind,
+    required this.newOutfits,
+    required this.partnerCount,
+    required this.title,
+    required this.explanation,
+  });
+
+  final ClothingCategory category;
+  final WardrobeColour colour;
+  final Formality formality;
+  final GapKind kind;
+
+  /// Needed: every valid outfit it would make possible.
+  /// Useful: only the good (Good or Strong match) outfits it would add.
+  final int newOutfits;
+
+  /// Distinct owned items it would pair with in those outfits.
+  final int partnerCount;
+  final String title;
+  final String explanation;
+
+  String get key => gapKey(category, colour, formality);
+}
+
+class GapRequest {
+  const GapRequest({
+    required this.items,
+    this.preferences = const RecommendationPreferences(),
+    this.excludedKeys = const {},
+    this.minNewOutfits = 3,
+    this.limit = 10,
+    this.perCategory = 2,
+  });
+
+  final List<ClothingItem> items;
+  final RecommendationPreferences preferences;
+
+  /// Keys of suggestions to hide (already on the wishlist, or dismissed).
+  final Set<String> excludedKeys;
+  final int minNewOutfits;
+  final int limit;
+  final int perCategory;
+}
+
+const _unlimited = 1 << 30;
+
+/// Whether the wardrobe has the basics (a top, bottom or dress) that tell us
+/// which outfit types you wear. Without them there is nothing to analyse.
+bool canAnalyseGaps(List<ClothingItem> items) => items.any(
+  (i) =>
+      i.isAvailable &&
+      (i.category == ClothingCategory.top ||
+          i.category == ClothingCategory.bottom ||
+          i.category == ClothingCategory.onePiece),
+);
+
+List<GapSuggestion> analyseGaps(GapRequest request) {
+  final owned = [
+    for (final i in request.items)
+      if (isEligible(i, request.preferences)) i,
+  ];
+  final categories = {for (final i in owned) i.category};
+
+  // Outfit types you actually wear.
+  final active = <OutfitTemplate>[
+    if (categories.contains(ClothingCategory.top) ||
+        categories.contains(ClothingCategory.bottom))
+      outfitTemplates[0],
+    if (categories.contains(ClothingCategory.onePiece)) outfitTemplates[1],
+  ];
+  if (active.isEmpty) return const [];
+
+  final candidateCategories = <ClothingCategory>{
+    for (final t in active) ...t.required,
+    for (final t in active) ...t.optional,
+  };
+  final colours = <WardrobeColour>{
+    ...WardrobeColour.values.where((c) => c.isNeutral),
+    ...request.preferences.preferredColours,
+  }..removeAll(request.preferences.excludedColours);
+  final ownedFormalities = {
+    for (final i in owned)
+      if (i.formality != null) i.formality!,
+  };
+  final formalities = ownedFormalities.isEmpty
+      ? {Formality.casual}
+      : ownedFormalities;
+
+  final baseline = recommend(
+    RecommendationRequest(
+      items: owned,
+      preferences: request.preferences,
+      limit: _unlimited,
+    ),
+  );
+  final canMakeOutfits = baseline.isNotEmpty;
+
+  final found = <GapSuggestion>[];
+  for (final category in ClothingCategory.values) {
+    if (!candidateCategories.contains(category)) continue;
+    for (final colour in WardrobeColour.values) {
+      if (!colours.contains(colour)) continue;
+      for (final formality in Formality.values) {
+        if (!formalities.contains(formality)) continue;
+        final key = gapKey(category, colour, formality);
+        if (request.excludedKeys.contains(key)) continue;
+        final suggestion = _evaluate(
+          request,
+          owned,
+          category,
+          colour,
+          formality,
+          canMakeOutfits,
+        );
+        if (suggestion != null) found.add(suggestion);
+      }
+    }
+  }
+
+  final preferred = request.preferences.preferredColours;
+  found.sort((a, b) {
+    var c = a.kind.index.compareTo(b.kind.index); // needed first
+    if (c != 0) return c;
+    c = b.newOutfits.compareTo(a.newOutfits);
+    if (c != 0) return c;
+    c = b.partnerCount.compareTo(a.partnerCount);
+    if (c != 0) return c;
+    final aPref = preferred.contains(a.colour) ? 0 : 1;
+    final bPref = preferred.contains(b.colour) ? 0 : 1;
+    c = aPref.compareTo(bPref);
+    return c != 0 ? c : a.key.compareTo(b.key);
+  });
+
+  final perCategory = <ClothingCategory, int>{};
+  final result = <GapSuggestion>[];
+  for (final s in found) {
+    final n = perCategory[s.category] ?? 0;
+    if (n >= request.perCategory) continue;
+    perCategory[s.category] = n + 1;
+    result.add(s);
+    if (result.length >= request.limit) break;
+  }
+  return result;
+}
+
+GapSuggestion? _evaluate(
+  GapRequest request,
+  List<ClothingItem> owned,
+  ClothingCategory category,
+  WardrobeColour colour,
+  Formality formality,
+  bool canMakeOutfits,
+) {
+  final key = gapKey(category, colour, formality);
+  final title =
+      '${colour.label} ${formality.label.toLowerCase()} '
+      '${category.label.toLowerCase()}';
+  final imaginary = ClothingItem(
+    id: 'gap:$key',
+    name: title,
+    category: category,
+    primaryColour: colour,
+    formality: formality,
+    createdAt: DateTime.utc(2000),
+    updatedAt: DateTime.utc(2000),
+  );
+  final outfits = recommend(
+    RecommendationRequest(
+      items: owned,
+      preferences: request.preferences,
+      limit: _unlimited,
+      mustInclude: imaginary,
+    ),
+  );
+
+  int partners(Iterable<Recommendation> recs) => {
+    for (final r in recs)
+      for (final i in r.items)
+        if (i.id != imaginary.id) i.id,
+  }.length;
+
+  if (!canMakeOutfits) {
+    if (outfits.isEmpty) return null;
+    return GapSuggestion(
+      category: category,
+      colour: colour,
+      formality: formality,
+      kind: GapKind.needed,
+      newOutfits: outfits.length,
+      partnerCount: partners(outfits),
+      title: title,
+      explanation:
+          "You can't put together a complete outfit yet. This would make "
+          '${outfits.length} ${outfits.length == 1 ? 'outfit' : 'outfits'} '
+          'possible.',
+    );
+  }
+
+  final good = outfits
+      .where((r) => r.label != MatchLabel.possible)
+      .toList(growable: false);
+  if (good.length < request.minNewOutfits) return null;
+  final partnerCount = partners(good);
+  return GapSuggestion(
+    category: category,
+    colour: colour,
+    formality: formality,
+    kind: GapKind.useful,
+    newOutfits: good.length,
+    partnerCount: partnerCount,
+    title: title,
+    explanation:
+        'Would pair with $partnerCount of your items, adding '
+        '${good.length} good outfits.',
+  );
+}

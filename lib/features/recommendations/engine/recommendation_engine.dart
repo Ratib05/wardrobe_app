@@ -68,6 +68,7 @@ class RecommendationRequest {
     this.maxPerCategory = 15,
     this.maxOuterwear = 6,
     this.weights,
+    this.mustInclude,
   });
 
   final List<ClothingItem> items;
@@ -81,6 +82,11 @@ class RecommendationRequest {
   final int maxPerCategory;
   final int maxOuterwear;
   final Map<ScoreFactor, double>? weights;
+
+  /// When set, only combinations containing this item are generated (used by
+  /// gap analysis to evaluate an item the user does not own yet). It bypasses
+  /// eligibility and the per-category cap.
+  final ClothingItem? mustInclude;
 }
 
 const _fallbackReason = 'Meets the basic outfit rules';
@@ -131,8 +137,16 @@ List<Recommendation> recommend(RecommendationRequest request) {
       ),
   };
 
+  final must = request.mustInclude;
+  if (must != null) pools[must.category] = [must];
+
   final results = <Recommendation>[];
   for (final template in outfitTemplates) {
+    if (must != null &&
+        !template.required.contains(must.category) &&
+        !template.optional.contains(must.category)) {
+      continue;
+    }
     final required = (template.required.toList()
       ..sort((a, b) => a.index.compareTo(b.index)));
     final lists = [
@@ -143,9 +157,14 @@ List<Recommendation> recommend(RecommendationRequest request) {
         ? pools[ClothingCategory.outerwear] ?? const <ClothingItem>[]
         : const <ClothingItem>[];
 
+    // Outerwear is optional, except when it is the item being evaluated.
+    final coatOptions = must?.category == ClothingCategory.outerwear
+        ? <ClothingItem?>[...coats]
+        : <ClothingItem?>[null, ...coats];
+
     void walk(int depth, List<ClothingItem> chosen) {
       if (depth == lists.length) {
-        for (final coat in <ClothingItem?>[null, ...coats]) {
+        for (final coat in coatOptions) {
           final outfit = [...chosen, ?coat];
           final rec = _score(template, outfit, request, weights);
           if (rec != null) results.add(rec);
