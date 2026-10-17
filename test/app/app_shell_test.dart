@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wardrobe_app/services/backup_history.dart';
 
+import 'package:wardrobe_app/app/widgets/page_header.dart';
+
 import '../helpers.dart';
 
 /// Navigation label -> AppBar title of the screen it opens.
@@ -31,7 +33,7 @@ void main() {
       final heading = label == 'Wardrobe'
           ? find.text('Your wardrobe')
           : find.descendant(
-              of: find.byType(AppBar),
+              of: find.byType(label == 'Outfits' ? PageHeader : AppBar),
               matching: find.text(title),
             );
       expect(heading, findsOneWidget, reason: label);

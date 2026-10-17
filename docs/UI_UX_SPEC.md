@@ -39,15 +39,13 @@ Implemented to match the design mockups. The header (back link, title, Cancel an
 
 ## 6. Outfit Builder
 
-Allow the user to select items visually and combine them into an outfit.
+Implemented. Slots, a picker and a live check, on one screen.
 
-The interface should show:
-- Selected items.
-- Item roles, where relevant.
-- Validation warnings.
-- Save and cancel actions.
-
-Do not require every outfit to use the same rigid combination of clothing categories.
+- **Slots:** Outer layer (optional), Top, Bottom, Shoes and Accessory (optional). The "Dress / jumpsuit" switch swaps Top and Bottom for a single Dress slot and clears the items it replaces. Tapping a slot makes it the active one; picking an item fills it and moves on to the next empty required slot. Tapping a chosen item again, or the slot's close button, removes it.
+- **Picker:** the available items of the active slot's category. For Shoes the heading is "Choose shoes ordered by fit". Shoes are ranked by the same scoring rules as the recommendations and labelled Strong fit, Good fit, Slightly formal or Slightly casual (formality relative to the other chosen items). With nothing else chosen the shoes are listed by name without labels.
+- **Outfit check:** "NN / 100", computed with the recommendation engine's factors and weights (feedback is neutral because the outfit is new). Notes are only what is true: strengths are the factor reasons that scored 0.75 or more, weaknesses are factors below 0.5 ("Colours may clash", "Formality levels are far apart", and so on). Missing data is never penalised. Below it, the structural warnings (incomplete outfit, archived items, more than one pair of shoes).
+- **Details:** name, occasion dropdown (also used by the check), Favourite, Save. Save is enabled only when the outfit is complete for a template (top + bottom + shoes, or dress + shoes; outerwear and accessories optional). Season, rating and notes are not shown in the builder but are kept when an existing outfit is edited.
+- **Layout:** two columns at 1000 px and wider (slots, check and details on the left; picker on the right); one column below that.
 
 ## 7. Recommendations
 

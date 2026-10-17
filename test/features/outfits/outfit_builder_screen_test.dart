@@ -51,14 +51,39 @@ void main() {
     item(id: 's1', name: 'Boots', category: ClothingCategory.footwear),
   ];
 
+  Future<void> chooseSlot(WidgetTester tester, String slot) async {
+    await tester.tap(find.byKey(Key('slot-$slot')));
+    await tester.pump();
+  }
+
   testApp('warns until the outfit is complete', (tester, paths) async {
     await pumpApp(tester, paths: paths, items: wardrobe);
     await openBuilder(tester);
     await pick(tester, 't1');
+    await chooseSlot(tester, 'bottom');
     await pick(tester, 'b1');
     expect(find.text('Not a complete outfit yet — add: Shoes'), findsOneWidget);
+    expect(find.byKey(const Key('outfit-score')), findsOneWidget);
+    await chooseSlot(tester, 'shoes');
     await pick(tester, 's1');
     expect(find.textContaining('Not a complete outfit'), findsNothing);
+  });
+
+  testApp('Save stays disabled until the outfit is complete', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    await openBuilder(tester);
+    await tester.enterText(find.byKey(const Key('outfit-name')), 'X');
+    await pick(tester, 't1');
+    final save = find.byKey(const Key('save-outfit'));
+    expect(tester.widget<FilledButton>(save).onPressed, isNull);
+    await chooseSlot(tester, 'bottom');
+    await pick(tester, 'b1');
+    await chooseSlot(tester, 'shoes');
+    await pick(tester, 's1');
+    expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
   });
 
   testApp('tapping a selected item deselects it', (tester, paths) async {
@@ -66,18 +91,61 @@ void main() {
     await openBuilder(tester);
     await pick(tester, 't1');
     expect(find.byKey(const Key('sel-t1')), findsOneWidget);
+    await chooseSlot(tester, 'top');
     await pick(tester, 't1');
     expect(find.byKey(const Key('sel-t1')), findsNothing);
   });
 
-  testApp('saving needs two items', (tester, paths) async {
-    await pumpApp(tester, paths: paths, items: wardrobe);
+  testApp('the dress switch swaps top and bottom for a dress', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(
+      tester,
+      paths: paths,
+      items: [
+        ...wardrobe,
+        item(id: 'd1', name: 'Sundress', category: ClothingCategory.onePiece),
+      ],
+    );
     await openBuilder(tester);
-    await tester.enterText(find.widgetWithText(TextField, 'Outfit name'), 'X');
     await pick(tester, 't1');
-    await tester.tap(find.widgetWithText(TextButton, 'Save'));
+    expect(find.byKey(const Key('slot-top')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('dress-switch')));
     await tester.pump();
-    expect(find.text('Choose at least two items'), findsOneWidget);
+    expect(find.byKey(const Key('slot-top')), findsNothing);
+    expect(find.byKey(const Key('slot-dress')), findsOneWidget);
+    expect(find.byKey(const Key('sel-t1')), findsNothing);
+    await pick(tester, 'd1');
+    await chooseSlot(tester, 'shoes');
+    await pick(tester, 's1');
+    expect(find.textContaining('Not a complete outfit'), findsNothing);
+  });
+
+  testApp('shoes are offered with a fit label', (tester, paths) async {
+    await pumpApp(
+      tester,
+      paths: paths,
+      items: [
+        item(
+          id: 't1',
+          name: 'Shirt',
+          category: ClothingCategory.top,
+          formality: Formality.smart,
+        ),
+        item(
+          id: 's1',
+          name: 'Trainers',
+          category: ClothingCategory.footwear,
+          formality: Formality.casual,
+        ),
+      ],
+    );
+    await openBuilder(tester);
+    await pick(tester, 't1');
+    await chooseSlot(tester, 'shoes');
+    expect(find.text('CHOOSE SHOES ORDERED BY FIT'), findsOneWidget);
+    expect(find.text('Slightly casual'), findsOneWidget);
   });
 
   testApp('saved outfit appears in the list with its photos', (
@@ -86,14 +154,16 @@ void main() {
   ) async {
     await pumpApp(tester, paths: paths, items: wardrobe);
     await openBuilder(tester);
-    for (final id in ['t1', 'b1', 's1']) {
-      await pick(tester, id);
-    }
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Outfit name'),
-      'Office',
-    );
-    await tester.tap(find.widgetWithText(TextButton, 'Save'));
+    await pick(tester, 't1');
+    await chooseSlot(tester, 'bottom');
+    await pick(tester, 'b1');
+    await chooseSlot(tester, 'shoes');
+    await pick(tester, 's1');
+    await tester.enterText(find.byKey(const Key('outfit-name')), 'Office');
+    final save = find.byKey(const Key('save-outfit'));
+    await tester.ensureVisible(save);
+    await tester.pumpAndSettle();
+    await tester.tap(save);
     await pumpUntilFound(tester, find.byType(OutfitCard));
     expect(
       find.descendant(

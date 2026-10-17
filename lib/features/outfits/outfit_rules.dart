@@ -39,3 +39,9 @@ String? validateOutfit(String name, List<String> itemIds) {
   if (itemIds.length < 2) return 'Choose at least two items';
   return null;
 }
+
+/// True when [items] cover every required category of some outfit template.
+bool isCompleteOutfit(List<ClothingItem> items) {
+  final present = items.map((i) => i.category).toSet();
+  return outfitTemplates.any((t) => present.containsAll(t.required));
+}

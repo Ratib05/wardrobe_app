@@ -120,16 +120,19 @@ void main() {
       await tester.tap(tile);
       await tester.pump();
     }
-    final casual = find.widgetWithText(FilterChip, 'Casual');
-    await tester.ensureVisible(casual.first);
+    // Picking fills the slots in order (top, bottom, shoes).
+    final dropdown = find.byType(DropdownButtonFormField<Occasion?>);
+    await tester.ensureVisible(dropdown);
     await tester.pumpAndSettle();
-    await tester.tap(casual.first);
-    await tester.pump();
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Outfit name'),
-      'Weekend',
-    );
-    await tester.tap(find.widgetWithText(TextButton, 'Save'));
+    await tester.tap(dropdown);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Casual').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('outfit-name')), 'Weekend');
+    final save = find.byKey(const Key('save-outfit'));
+    await tester.ensureVisible(save);
+    await tester.pumpAndSettle();
+    await tester.tap(save);
     await pumpUntilFound(tester, find.byType(OutfitCard));
 
     await tester.tap(
@@ -143,13 +146,13 @@ void main() {
     expect(find.byKey(const Key('sel-b1')), findsOneWidget);
     expect(find.byKey(const Key('sel-s1')), findsOneWidget);
     final nameField = tester.widget<TextField>(
-      find.widgetWithText(TextField, 'Outfit name'),
+      find.byKey(const Key('outfit-name')),
     );
     expect(nameField.controller!.text, 'Weekend');
-    final chip = tester.widget<FilterChip>(
-      find.widgetWithText(FilterChip, 'Casual').first,
+    final occasion = tester.widget<DropdownButtonFormField<Occasion?>>(
+      find.byType(DropdownButtonFormField<Occasion?>),
     );
-    expect(chip.selected, isTrue);
+    expect(occasion.initialValue, Occasion.casual);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
