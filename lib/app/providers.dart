@@ -2,6 +2,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../database/app_database.dart';
+import '../services/backup_history.dart';
 import '../services/image_storage.dart';
 import '../services/platform_pickers.dart';
 import '../services/storage_paths.dart';
@@ -36,3 +37,9 @@ final platformPickersProvider = Provider<PlatformPickers>(
 /// App version shown in Settings and written to backups; main() overrides it
 /// with the real version.
 final appVersionProvider = Provider<String>((ref) => 'dev');
+
+/// Backups made on this device (newest first); invalidate after a backup.
+final backupHistoryProvider = FutureProvider<List<BackupRecord>>(
+  (ref) async =>
+      BackupHistory(ref.watch(storagePathsProvider).backupHistoryFile).load(),
+);

@@ -14,6 +14,7 @@ void main() {
   test('isAvailable', () {
     expect(item(isArchived: true).isAvailable, isFalse);
     expect(item(condition: ItemCondition.needsRepair).isAvailable, isFalse);
+    expect(item(hideFromSuggestions: true).isAvailable, isFalse);
     expect(item().isAvailable, isTrue);
   });
 
@@ -23,9 +24,22 @@ void main() {
       WardrobeColour.white,
       WardrobeColour.grey,
       WardrobeColour.navy,
+      WardrobeColour.charcoal,
       WardrobeColour.beige,
+      WardrobeColour.stone,
       WardrobeColour.brown,
+      WardrobeColour.darkBrown,
       WardrobeColour.denim,
     });
+  });
+
+  test('formality levels run from relaxed to formal', () {
+    expect(Formality.values.map((f) => f.label), [
+      'Relaxed',
+      'Casual',
+      'Smart casual',
+      'Smart',
+      'Formal',
+    ]);
   });
 }

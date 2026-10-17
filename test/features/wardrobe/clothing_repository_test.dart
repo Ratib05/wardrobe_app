@@ -62,6 +62,7 @@ void main() {
     await repo.save(item(id: 'ok'));
     await repo.save(item(id: 'arch', isArchived: true));
     await repo.save(item(id: 'bad', condition: ItemCondition.needsRepair));
+    await repo.save(item(id: 'hidden', hideFromSuggestions: true));
     expect((await repo.availableItems()).map((i) => i.id), ['ok']);
   });
 

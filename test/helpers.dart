@@ -37,6 +37,7 @@ ClothingItem item({
   String? imagePath,
   bool isFavourite = false,
   bool isArchived = false,
+  bool hideFromSuggestions = false,
   DateTime? createdAt,
 }) {
   final n = ++_counter;
@@ -56,6 +57,7 @@ ClothingItem item({
     imagePath: imagePath,
     isFavourite: isFavourite,
     isArchived: isArchived,
+    hideFromSuggestions: hideFromSuggestions,
     createdAt: created,
     updatedAt: created,
   );

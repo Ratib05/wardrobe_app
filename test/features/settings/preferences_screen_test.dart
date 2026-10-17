@@ -11,12 +11,7 @@ void main() {
     paths,
   ) async {
     await pumpApp(tester, paths: paths);
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.text('Settings'),
-      ),
-    );
+    await tester.tap(find.byKey(const Key('nav-Settings')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Recommendation preferences'));
     await tester.pumpAndSettle();

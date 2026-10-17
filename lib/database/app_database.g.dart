@@ -209,6 +209,20 @@ class $ClothingItemsTable extends ClothingItems
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _hideFromSuggestionsMeta =
+      const VerificationMeta('hideFromSuggestions');
+  @override
+  late final GeneratedColumn<bool> hideFromSuggestions = GeneratedColumn<bool>(
+    'hide_from_suggestions',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("hide_from_suggestions" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -261,6 +275,7 @@ class $ClothingItemsTable extends ClothingItems
     imagePath,
     isFavourite,
     isArchived,
+    hideFromSuggestions,
     notes,
     createdAt,
     updatedAt,
@@ -336,6 +351,15 @@ class $ClothingItemsTable extends ClothingItems
       context.handle(
         _isArchivedMeta,
         isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
+      );
+    }
+    if (data.containsKey('hide_from_suggestions')) {
+      context.handle(
+        _hideFromSuggestionsMeta,
+        hideFromSuggestions.isAcceptableOrUnknown(
+          data['hide_from_suggestions']!,
+          _hideFromSuggestionsMeta,
+        ),
       );
     }
     if (data.containsKey('notes')) {
@@ -465,6 +489,10 @@ class $ClothingItemsTable extends ClothingItems
         DriftSqlType.bool,
         data['${effectivePrefix}is_archived'],
       )!,
+      hideFromSuggestions: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}hide_from_suggestions'],
+      )!,
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -538,6 +566,7 @@ class ClothingItemsCompanion extends UpdateCompanion<ClothingItem> {
   final Value<String?> imagePath;
   final Value<bool> isFavourite;
   final Value<bool> isArchived;
+  final Value<bool> hideFromSuggestions;
   final Value<String?> notes;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -562,6 +591,7 @@ class ClothingItemsCompanion extends UpdateCompanion<ClothingItem> {
     this.imagePath = const Value.absent(),
     this.isFavourite = const Value.absent(),
     this.isArchived = const Value.absent(),
+    this.hideFromSuggestions = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -587,6 +617,7 @@ class ClothingItemsCompanion extends UpdateCompanion<ClothingItem> {
     this.imagePath = const Value.absent(),
     this.isFavourite = const Value.absent(),
     this.isArchived = const Value.absent(),
+    this.hideFromSuggestions = const Value.absent(),
     this.notes = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -616,6 +647,7 @@ class ClothingItemsCompanion extends UpdateCompanion<ClothingItem> {
     Expression<String>? imagePath,
     Expression<bool>? isFavourite,
     Expression<bool>? isArchived,
+    Expression<bool>? hideFromSuggestions,
     Expression<String>? notes,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -641,6 +673,8 @@ class ClothingItemsCompanion extends UpdateCompanion<ClothingItem> {
       if (imagePath != null) 'image_path': imagePath,
       if (isFavourite != null) 'is_favourite': isFavourite,
       if (isArchived != null) 'is_archived': isArchived,
+      if (hideFromSuggestions != null)
+        'hide_from_suggestions': hideFromSuggestions,
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -668,6 +702,7 @@ class ClothingItemsCompanion extends UpdateCompanion<ClothingItem> {
     Value<String?>? imagePath,
     Value<bool>? isFavourite,
     Value<bool>? isArchived,
+    Value<bool>? hideFromSuggestions,
     Value<String?>? notes,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -693,6 +728,7 @@ class ClothingItemsCompanion extends UpdateCompanion<ClothingItem> {
       imagePath: imagePath ?? this.imagePath,
       isFavourite: isFavourite ?? this.isFavourite,
       isArchived: isArchived ?? this.isArchived,
+      hideFromSuggestions: hideFromSuggestions ?? this.hideFromSuggestions,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -782,6 +818,9 @@ class ClothingItemsCompanion extends UpdateCompanion<ClothingItem> {
     if (isArchived.present) {
       map['is_archived'] = Variable<bool>(isArchived.value);
     }
+    if (hideFromSuggestions.present) {
+      map['hide_from_suggestions'] = Variable<bool>(hideFromSuggestions.value);
+    }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
@@ -819,6 +858,7 @@ class ClothingItemsCompanion extends UpdateCompanion<ClothingItem> {
           ..write('imagePath: $imagePath, ')
           ..write('isFavourite: $isFavourite, ')
           ..write('isArchived: $isArchived, ')
+          ..write('hideFromSuggestions: $hideFromSuggestions, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -853,6 +893,7 @@ class _$ClothingItemInsertable implements Insertable<ClothingItem> {
       imagePath: Value(_object.imagePath),
       isFavourite: Value(_object.isFavourite),
       isArchived: Value(_object.isArchived),
+      hideFromSuggestions: Value(_object.hideFromSuggestions),
       notes: Value(_object.notes),
       createdAt: Value(_object.createdAt),
       updatedAt: Value(_object.updatedAt),
@@ -2656,6 +2697,15 @@ class $UserPreferencesTable extends UserPreferences
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _weightMeta = const VerificationMeta('weight');
+  @override
+  late final GeneratedColumn<double> weight = GeneratedColumn<double>(
+    'weight',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -2671,6 +2721,7 @@ class $UserPreferencesTable extends UserPreferences
   List<GeneratedColumn> get $columns => [
     preferenceType,
     preferenceValue,
+    weight,
     createdAt,
   ];
   @override
@@ -2695,6 +2746,12 @@ class $UserPreferencesTable extends UserPreferences
       );
     } else if (isInserting) {
       context.missing(_preferenceValueMeta);
+    }
+    if (data.containsKey('weight')) {
+      context.handle(
+        _weightMeta,
+        weight.isAcceptableOrUnknown(data['weight']!, _weightMeta),
+      );
     }
     if (data.containsKey('created_at')) {
       context.handle(
@@ -2723,6 +2780,10 @@ class $UserPreferencesTable extends UserPreferences
         DriftSqlType.string,
         data['${effectivePrefix}preference_value'],
       )!,
+      weight: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}weight'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -2744,10 +2805,14 @@ class $UserPreferencesTable extends UserPreferences
 class UserPreference extends DataClass implements Insertable<UserPreference> {
   final PreferenceType preferenceType;
   final String preferenceValue;
+
+  /// Strength of the preference; used by the score-weight settings.
+  final double? weight;
   final DateTime createdAt;
   const UserPreference({
     required this.preferenceType,
     required this.preferenceValue,
+    this.weight,
     required this.createdAt,
   });
   @override
@@ -2759,6 +2824,9 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
       );
     }
     map['preference_value'] = Variable<String>(preferenceValue);
+    if (!nullToAbsent || weight != null) {
+      map['weight'] = Variable<double>(weight);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -2767,6 +2835,9 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
     return UserPreferencesCompanion(
       preferenceType: Value(preferenceType),
       preferenceValue: Value(preferenceValue),
+      weight: weight == null && nullToAbsent
+          ? const Value.absent()
+          : Value(weight),
       createdAt: Value(createdAt),
     );
   }
@@ -2781,6 +2852,7 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
         serializer.fromJson<String>(json['preferenceType']),
       ),
       preferenceValue: serializer.fromJson<String>(json['preferenceValue']),
+      weight: serializer.fromJson<double?>(json['weight']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -2792,6 +2864,7 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
         $UserPreferencesTable.$converterpreferenceType.toJson(preferenceType),
       ),
       'preferenceValue': serializer.toJson<String>(preferenceValue),
+      'weight': serializer.toJson<double?>(weight),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -2799,10 +2872,12 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
   UserPreference copyWith({
     PreferenceType? preferenceType,
     String? preferenceValue,
+    Value<double?> weight = const Value.absent(),
     DateTime? createdAt,
   }) => UserPreference(
     preferenceType: preferenceType ?? this.preferenceType,
     preferenceValue: preferenceValue ?? this.preferenceValue,
+    weight: weight.present ? weight.value : this.weight,
     createdAt: createdAt ?? this.createdAt,
   );
   UserPreference copyWithCompanion(UserPreferencesCompanion data) {
@@ -2813,6 +2888,7 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
       preferenceValue: data.preferenceValue.present
           ? data.preferenceValue.value
           : this.preferenceValue,
+      weight: data.weight.present ? data.weight.value : this.weight,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -2822,36 +2898,42 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
     return (StringBuffer('UserPreference(')
           ..write('preferenceType: $preferenceType, ')
           ..write('preferenceValue: $preferenceValue, ')
+          ..write('weight: $weight, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(preferenceType, preferenceValue, createdAt);
+  int get hashCode =>
+      Object.hash(preferenceType, preferenceValue, weight, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is UserPreference &&
           other.preferenceType == this.preferenceType &&
           other.preferenceValue == this.preferenceValue &&
+          other.weight == this.weight &&
           other.createdAt == this.createdAt);
 }
 
 class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
   final Value<PreferenceType> preferenceType;
   final Value<String> preferenceValue;
+  final Value<double?> weight;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const UserPreferencesCompanion({
     this.preferenceType = const Value.absent(),
     this.preferenceValue = const Value.absent(),
+    this.weight = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   UserPreferencesCompanion.insert({
     required PreferenceType preferenceType,
     required String preferenceValue,
+    this.weight = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
   }) : preferenceType = Value(preferenceType),
@@ -2860,12 +2942,14 @@ class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
   static Insertable<UserPreference> custom({
     Expression<String>? preferenceType,
     Expression<String>? preferenceValue,
+    Expression<double>? weight,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (preferenceType != null) 'preference_type': preferenceType,
       if (preferenceValue != null) 'preference_value': preferenceValue,
+      if (weight != null) 'weight': weight,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2874,12 +2958,14 @@ class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
   UserPreferencesCompanion copyWith({
     Value<PreferenceType>? preferenceType,
     Value<String>? preferenceValue,
+    Value<double?>? weight,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
     return UserPreferencesCompanion(
       preferenceType: preferenceType ?? this.preferenceType,
       preferenceValue: preferenceValue ?? this.preferenceValue,
+      weight: weight ?? this.weight,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -2898,6 +2984,9 @@ class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
     if (preferenceValue.present) {
       map['preference_value'] = Variable<String>(preferenceValue.value);
     }
+    if (weight.present) {
+      map['weight'] = Variable<double>(weight.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2912,6 +3001,7 @@ class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
     return (StringBuffer('UserPreferencesCompanion(')
           ..write('preferenceType: $preferenceType, ')
           ..write('preferenceValue: $preferenceValue, ')
+          ..write('weight: $weight, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3434,6 +3524,7 @@ typedef $$ClothingItemsTableCreateCompanionBuilder =
       Value<String?> imagePath,
       Value<bool> isFavourite,
       Value<bool> isArchived,
+      Value<bool> hideFromSuggestions,
       Value<String?> notes,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -3460,6 +3551,7 @@ typedef $$ClothingItemsTableUpdateCompanionBuilder =
       Value<String?> imagePath,
       Value<bool> isFavourite,
       Value<bool> isArchived,
+      Value<bool> hideFromSuggestions,
       Value<String?> notes,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -3626,6 +3718,11 @@ class $$ClothingItemsTableFilterComposer
 
   ColumnFilters<bool> get isArchived => $composableBuilder(
     column: $table.isArchived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hideFromSuggestions => $composableBuilder(
+    column: $table.hideFromSuggestions,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3799,6 +3896,11 @@ class $$ClothingItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get hideFromSuggestions => $composableBuilder(
+    column: $table.hideFromSuggestions,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get notes => $composableBuilder(
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
@@ -3890,6 +3992,11 @@ class $$ClothingItemsTableAnnotationComposer
 
   GeneratedColumn<bool> get isArchived => $composableBuilder(
     column: $table.isArchived,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get hideFromSuggestions => $composableBuilder(
+    column: $table.hideFromSuggestions,
     builder: (column) => column,
   );
 
@@ -4001,6 +4108,7 @@ class $$ClothingItemsTableTableManager
                 Value<String?> imagePath = const Value.absent(),
                 Value<bool> isFavourite = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
+                Value<bool> hideFromSuggestions = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -4025,6 +4133,7 @@ class $$ClothingItemsTableTableManager
                 imagePath: imagePath,
                 isFavourite: isFavourite,
                 isArchived: isArchived,
+                hideFromSuggestions: hideFromSuggestions,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -4052,6 +4161,7 @@ class $$ClothingItemsTableTableManager
                 Value<String?> imagePath = const Value.absent(),
                 Value<bool> isFavourite = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
+                Value<bool> hideFromSuggestions = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -4076,6 +4186,7 @@ class $$ClothingItemsTableTableManager
                 imagePath: imagePath,
                 isFavourite: isFavourite,
                 isArchived: isArchived,
+                hideFromSuggestions: hideFromSuggestions,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -5445,6 +5556,7 @@ typedef $$UserPreferencesTableCreateCompanionBuilder =
     UserPreferencesCompanion Function({
       required PreferenceType preferenceType,
       required String preferenceValue,
+      Value<double?> weight,
       required DateTime createdAt,
       Value<int> rowid,
     });
@@ -5452,6 +5564,7 @@ typedef $$UserPreferencesTableUpdateCompanionBuilder =
     UserPreferencesCompanion Function({
       Value<PreferenceType> preferenceType,
       Value<String> preferenceValue,
+      Value<double?> weight,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -5473,6 +5586,11 @@ class $$UserPreferencesTableFilterComposer
 
   ColumnFilters<String> get preferenceValue => $composableBuilder(
     column: $table.preferenceValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get weight => $composableBuilder(
+    column: $table.weight,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5501,6 +5619,11 @@ class $$UserPreferencesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get weight => $composableBuilder(
+    column: $table.weight,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5526,6 +5649,9 @@ class $$UserPreferencesTableAnnotationComposer
     column: $table.preferenceValue,
     builder: (column) => column,
   );
+
+  GeneratedColumn<double> get weight =>
+      $composableBuilder(column: $table.weight, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -5570,11 +5696,13 @@ class $$UserPreferencesTableTableManager
               ({
                 Value<PreferenceType> preferenceType = const Value.absent(),
                 Value<String> preferenceValue = const Value.absent(),
+                Value<double?> weight = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => UserPreferencesCompanion(
                 preferenceType: preferenceType,
                 preferenceValue: preferenceValue,
+                weight: weight,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -5582,11 +5710,13 @@ class $$UserPreferencesTableTableManager
               ({
                 required PreferenceType preferenceType,
                 required String preferenceValue,
+                Value<double?> weight = const Value.absent(),
                 required DateTime createdAt,
                 Value<int> rowid = const Value.absent(),
               }) => UserPreferencesCompanion.insert(
                 preferenceType: preferenceType,
                 preferenceValue: preferenceValue,
+                weight: weight,
                 createdAt: createdAt,
                 rowid: rowid,
               ),

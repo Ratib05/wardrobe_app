@@ -29,6 +29,7 @@ class ClothingItem {
     this.imagePath,
     this.isFavourite = false,
     this.isArchived = false,
+    this.hideFromSuggestions = false,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
@@ -53,10 +54,17 @@ class ClothingItem {
   final String? imagePath;
   final bool isFavourite;
   final bool isArchived;
+
+  /// The user chose to keep this item out of outfits and suggestions (for
+  /// example it is in repair or stored away). It stays in the wardrobe.
+  final bool hideFromSuggestions;
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   /// Usable in outfits and recommendations.
-  bool get isAvailable => !isArchived && condition != ItemCondition.needsRepair;
+  bool get isAvailable =>
+      !isArchived &&
+      !hideFromSuggestions &&
+      condition != ItemCondition.needsRepair;
 }

@@ -110,7 +110,7 @@ void main() {
         'outfits': 1,
         'wishlistItems': 1,
       });
-      expect(manifest.schemaVersion, 1);
+      expect(manifest.schemaVersion, 2);
       expect(manifest.images, ['images/clothing/a.jpg']);
     });
 
@@ -133,7 +133,7 @@ void main() {
           ..writeAsBytesSync(archive.findFile('database/wardrobe.db')!.content);
         final raw = sqlite.sqlite3.open(snapshot.path);
         addTearDown(raw.close);
-        expect(raw.select('PRAGMA user_version').first.values.first, 1);
+        expect(raw.select('PRAGMA user_version').first.values.first, 2);
         expect(
           raw.select('SELECT COUNT(*) FROM clothing_items').first.values.first,
           2,
@@ -233,14 +233,14 @@ void main() {
 
     Future<void> expectRejected(String path, BackupError error) async {
       await expectLater(
-        service.stageRestore(path, currentSchemaVersion: 1),
+        service.stageRestore(path, currentSchemaVersion: 2),
         throwsA(isA<BackupException>().having((e) => e.error, 'error', error)),
       );
       expectLiveUntouched();
     }
 
     test('round trip restores records, links and photos', () async {
-      final staged = await service.stageRestore(zip, currentSchemaVersion: 1);
+      final staged = await service.stageRestore(zip, currentSchemaVersion: 2);
       expect(staged.counts, {
         'clothingItems': 2,
         'outfits': 1,
@@ -312,7 +312,7 @@ void main() {
     test('entries that escape the staging folder are not written', () async {
       final out = p.join(target.root.path, 'evil.zip');
       rewriteZip(zip, out, add: {'../evil.txt': utf8.encode('x')});
-      final staged = await service.stageRestore(out, currentSchemaVersion: 1);
+      final staged = await service.stageRestore(out, currentSchemaVersion: 2);
       expect(
         File(p.join(target.tempDir.path, 'evil.txt')).existsSync(),
         isFalse,
@@ -322,7 +322,7 @@ void main() {
     });
 
     test('a failed apply keeps the existing wardrobe', () async {
-      final staged = await service.stageRestore(zip, currentSchemaVersion: 1);
+      final staged = await service.stageRestore(zip, currentSchemaVersion: 2);
       Directory(
         p.join(staged.dir.path, 'database'),
       ).deleteSync(recursive: true);
@@ -342,7 +342,7 @@ void main() {
     });
 
     test('discard removes the staging folder', () async {
-      final staged = await service.stageRestore(zip, currentSchemaVersion: 1);
+      final staged = await service.stageRestore(zip, currentSchemaVersion: 2);
       await service.discard(staged);
       expect(staged.dir.existsSync(), isFalse);
       expectLiveUntouched();

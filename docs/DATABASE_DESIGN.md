@@ -203,3 +203,13 @@ Deletion rules:
 | `wishlist_items.purchased_item_id` -> `clothing_items` | SET NULL |
 
 The delete dialog tells the user how many outfits an item is in and offers "Archive instead".
+
+## 10. Schema Version 2
+
+Changes from version 1 (migration `from1To2`, tested in `test/drift/wardrobe/migration_test.dart`):
+
+- `clothing_items.hide_from_suggestions` (boolean, default false): the user keeps the item out of outfits and suggestions (in repair, stored away) without archiving it. An item is *available* only if it is not archived, not hidden, and its condition is not "Needs repair".
+- `user_preferences.weight` (real, nullable): strength of a preference; used by the score-weight settings.
+- Formality values were renamed to match the design: `loungewear` becomes `relaxed` and `business` becomes `smart` in `clothing_items.formality`, `wishlist_items.formality` and in `user_preferences` rows of type `preferredFormality`. `casual`, `smartCasual` and `formal` are unchanged.
+
+Before the app opens a database whose schema is older than the app's, it copies the file to `safety-copies/wardrobe-before-schema-v<N>-<timestamp>.db`. Older backups are migrated when they are validated during a restore.

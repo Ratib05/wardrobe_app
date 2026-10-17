@@ -27,11 +27,12 @@ class ClothingDao extends DatabaseAccessor<AppDatabase>
   Future<ClothingItem?> getById(String id) =>
       (select(clothingItems)..where((t) => t.id.equals(id))).getSingleOrNull();
 
-  /// Not archived and not marked Needs repair.
+  /// Not archived, not hidden from suggestions, not marked Needs repair.
   Future<List<ClothingItem>> availableItems() =>
       (select(clothingItems)..where(
             (t) =>
                 t.isArchived.equals(false) &
+                t.hideFromSuggestions.equals(false) &
                 t.condition.equalsValue(ItemCondition.needsRepair).not(),
           ))
           .get();

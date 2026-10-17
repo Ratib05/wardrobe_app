@@ -8,12 +8,7 @@ import 'package:wardrobe_app/database/app_database.dart';
 import '../../helpers.dart';
 
 Future<void> openWishlist(WidgetTester tester) async {
-  await tester.tap(
-    find.descendant(
-      of: find.byType(NavigationRail),
-      matching: find.text('Wishlist'),
-    ),
-  );
+  await tester.tap(find.byKey(const Key('nav-Gaps & wishlist')));
   await tester.pumpAndSettle();
 }
 
@@ -51,7 +46,7 @@ void main() {
     await openWishlist(tester);
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
-    final footwear = find.widgetWithText(FilterChip, 'Footwear');
+    final footwear = find.widgetWithText(FilterChip, 'Shoes');
     await tester.ensureVisible(footwear);
     await tester.pumpAndSettle();
     await tester.tap(footwear);
@@ -125,7 +120,7 @@ void main() {
     await pumpUntilFound(tester, find.widgetWithText(TextField, 'Boots'));
     await tester.pump(const Duration(milliseconds: 300));
     final chip = tester.widget<FilterChip>(
-      find.widgetWithText(FilterChip, 'Footwear').first,
+      find.widgetWithText(FilterChip, 'Shoes').first,
     );
     expect(chip.selected, isTrue);
     await tester.tap(find.widgetWithText(TextButton, 'Save'));

@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../services/backup_history.dart';
 import '../../services/backup_service.dart';
 
 final backupServiceProvider = Provider<BackupService>(
@@ -35,7 +38,19 @@ class BackupController {
         .read(platformPickersProvider)
         .chooseBackupSaveLocation(suggestedFileName(DateTime.now()));
     if (path == null) return null;
-    return _service.createBackup(_ref.read(appDatabaseProvider), path);
+    final result = await _service.createBackup(
+      _ref.read(appDatabaseProvider),
+      path,
+    );
+    BackupHistory(_ref.read(storagePathsProvider).backupHistoryFile).add(
+      BackupRecord(
+        path: result.path,
+        sizeBytes: File(result.path).lengthSync(),
+        createdAt: DateTime.now(),
+      ),
+    );
+    _ref.invalidate(backupHistoryProvider);
+    return result;
   }
 
   /// Picks and validates a backup; returns null if the user cancels.

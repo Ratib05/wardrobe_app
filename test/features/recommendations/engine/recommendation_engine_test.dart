@@ -26,7 +26,7 @@ void main() {
   test('too few categories gives no results and a reason', () {
     final items = [top('t'), bottom('b')];
     expect(recommend(RecommendationRequest(items: items)), isEmpty);
-    expect(noResultsReason(items), 'To get recommendations, add: Footwear.');
+    expect(noResultsReason(items), 'To get recommendations, add: Shoes.');
     expect(noResultsReason([]), 'Add some clothing to get recommendations.');
     expect(noResultsReason([top('t'), bottom('b'), shoes('s')]), isNull);
   });

@@ -12,7 +12,7 @@ void main() {
 
   test('incomplete outfit names the missing category', () {
     expect(outfitWarnings([top, bottom]), [
-      'Not a complete outfit yet — add: Footwear',
+      'Not a complete outfit yet — add: Shoes',
     ]);
   });
 

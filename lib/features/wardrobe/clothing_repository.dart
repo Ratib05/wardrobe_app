@@ -51,6 +51,7 @@ class ClothingRepository {
       imagePath: newPath ?? item.imagePath,
       isFavourite: item.isFavourite,
       isArchived: item.isArchived,
+      hideFromSuggestions: item.hideFromSuggestions,
       notes: item.notes,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,

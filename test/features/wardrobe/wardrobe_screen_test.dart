@@ -5,12 +5,7 @@ import 'package:wardrobe_app/core/wardrobe_values.dart';
 import '../../helpers.dart';
 
 Future<void> openWardrobe(WidgetTester tester) async {
-  await tester.tap(
-    find.descendant(
-      of: find.byType(NavigationRail),
-      matching: find.text('Wardrobe'),
-    ),
-  );
+  await tester.tap(find.byKey(const Key('nav-Wardrobe')));
   await tester.pumpAndSettle();
 }
 
@@ -95,16 +90,12 @@ void main() {
     expect(find.text('Active'), findsNothing);
   });
 
-  testApp('list toggle shows ListTiles; dashboard lists recent items', (
-    tester,
-    paths,
-  ) async {
+  testApp('list toggle shows ListTiles', (tester, paths) async {
     await pumpApp(
       tester,
       paths: paths,
       items: [item(name: 'Newest tee')],
     );
-    expect(find.text('Recently added'), findsOneWidget);
     expect(find.text('Newest tee'), findsOneWidget);
     await openWardrobe(tester);
     await tester.tap(find.byTooltip('List view'));

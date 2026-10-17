@@ -7,12 +7,7 @@ import 'package:wardrobe_app/features/recommendations/widgets/recommendation_car
 import '../../helpers.dart';
 
 Future<void> openRecommendations(WidgetTester tester) async {
-  await tester.tap(
-    find.descendant(
-      of: find.byType(NavigationRail),
-      matching: find.text('Recommendations'),
-    ),
-  );
+  await tester.tap(find.byKey(const Key('nav-Suggestions')));
   await tester.pumpAndSettle();
 }
 
@@ -35,7 +30,7 @@ void main() {
   testApp('missing footwear is named', (tester, paths) async {
     await pumpApp(tester, paths: paths, items: wardrobe.take(2).toList());
     await openRecommendations(tester);
-    expect(find.text('To get recommendations, add: Footwear.'), findsOneWidget);
+    expect(find.text('To get recommendations, add: Shoes.'), findsOneWidget);
   });
 
   testApp('card shows a label and reasons, never a number', (

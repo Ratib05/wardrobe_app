@@ -1,10 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
-import '../features/dashboard/dashboard_screen.dart';
 import '../features/outfits/outfit_builder_screen.dart';
 import '../features/outfits/outfits_screen.dart';
 import '../features/recommendations/recommendations_screen.dart';
+import '../features/settings/backup_screen.dart';
 import '../features/settings/preferences_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/wardrobe/clothing_form_screen.dart';
@@ -20,12 +20,11 @@ StatefulShellBranch _branch(String path, Widget screen) => StatefulShellBranch(
 
 /// Each app instance gets its own router (created in the app's State).
 GoRouter createRouter() => GoRouter(
-  initialLocation: '/dashboard',
+  initialLocation: '/wardrobe',
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => AppShell(navigationShell: shell),
       branches: [
-        _branch('/dashboard', const DashboardScreen()),
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -98,6 +97,7 @@ GoRouter createRouter() => GoRouter(
             ),
           ],
         ),
+        _branch('/backup', const BackupScreen()),
         StatefulShellBranch(
           routes: [
             GoRoute(

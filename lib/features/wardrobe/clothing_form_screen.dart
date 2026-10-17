@@ -54,6 +54,7 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
   Set<Occasion> _occasions = {};
   ItemCondition _condition = ItemCondition.good;
   bool _favourite = false;
+  bool _hidden = false;
 
   File? _staged;
   bool _removePhoto = false;
@@ -129,6 +130,7 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
       _occasions = {...item.occasions};
       _condition = item.condition;
       _favourite = item.isFavourite;
+      _hidden = item.hideFromSuggestions;
     });
   }
 
@@ -202,6 +204,7 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
       imagePath: _removePhoto ? null : existing?.imagePath,
       isFavourite: _favourite,
       isArchived: existing?.isArchived ?? false,
+      hideFromSuggestions: _hidden,
       notes: _text(_notes),
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
@@ -535,6 +538,14 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
                           () => _condition = s.isEmpty ? _condition : s.first,
                         ),
                       ),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Hide from suggestions (in repair, stored away)',
+                      ),
+                      value: _hidden,
+                      onChanged: (v) => setState(() => _hidden = v),
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,

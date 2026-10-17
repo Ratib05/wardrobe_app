@@ -162,3 +162,8 @@ Back up wardrobe, Restore wardrobe (with the warning "Restoring replaces your cu
 ### Limitations
 - The save and open dialogs use `file_selector`, which supports Windows, macOS and Linux. Android needs a different export route (see the roadmap, Phase 8).
 - A backup stored only on the same device is lost with the device; the Settings screen reminds the user next to the Back up button.
+
+## 13. Additional Local Files
+
+- `safety-copies/`: automatic copies of the database made before a schema upgrade.
+- `backup_history.json`: a small log (newest first, at most 20 entries) of backups made on this device, used for "Last backup 3 days ago". It lives next to `data/` and `images/`, so a restore does not overwrite it, and it is not included in backups. A missing or damaged file is treated as an empty history.

@@ -7,9 +7,13 @@ import '../core/wardrobe_values.dart';
 import 'clothing_dao.dart';
 import 'outfit_dao.dart';
 import 'recommendation_dao.dart';
+import 'app_database.steps.dart';
 import 'wishlist_dao.dart';
 
 part 'app_database.g.dart';
+
+/// Bump together with a new snapshot (`dart run drift_dev make-migrations`).
+const currentSchemaVersion = 2;
 
 /// Stores a set of enum values as a sorted JSON array of names.
 /// Unknown names are skipped on read so old data never breaks the app.
@@ -64,6 +68,8 @@ class ClothingItems extends Table {
   TextColumn get imagePath => text().nullable()();
   BoolColumn get isFavourite => boolean().withDefault(const Constant(false))();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  BoolColumn get hideFromSuggestions =>
+      boolean().withDefault(const Constant(false))();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
@@ -137,6 +143,9 @@ class WishlistItems extends Table {
 class UserPreferences extends Table {
   TextColumn get preferenceType => textEnum<PreferenceType>()();
   TextColumn get preferenceValue => text()();
+
+  /// Strength of the preference; used by the score-weight settings.
+  RealColumn get weight => real().nullable()();
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -171,7 +180,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => currentSchemaVersion;
 
   /// Record counts for the user-visible tables (used in backups).
   Future<Map<String, int>> tableCounts() async {
@@ -188,6 +197,35 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
+    onUpgrade: stepByStep(
+      from1To2: (m, schema) async {
+        await m.addColumn(
+          schema.clothingItems,
+          schema.clothingItems.hideFromSuggestions,
+        );
+        await m.addColumn(
+          schema.userPreferences,
+          schema.userPreferences.weight,
+        );
+        // Formality values were renamed to match the new design:
+        // loungewear -> relaxed, business -> smart.
+        const renames = {'loungewear': 'relaxed', 'business': 'smart'};
+        for (final MapEntry(key: from, value: to) in renames.entries) {
+          for (final table in ['clothing_items', 'wishlist_items']) {
+            await m.database.customStatement(
+              'UPDATE $table SET formality = ? WHERE formality = ?',
+              [to, from],
+            );
+          }
+          await m.database.customStatement(
+            'UPDATE user_preferences SET preference_value = ? '
+            "WHERE preference_type = 'preferredFormality' "
+            'AND preference_value = ?',
+            [to, from],
+          );
+        }
+      },
+    ),
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },

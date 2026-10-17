@@ -28,12 +28,7 @@ Widget appFor(StoragePaths paths, FakePickers pickers, Key key) =>
     );
 
 Future<void> openWardrobe(WidgetTester tester) async {
-  await tester.tap(
-    find.descendant(
-      of: find.byType(NavigationRail),
-      matching: find.text('Wardrobe'),
-    ),
-  );
+  await tester.tap(find.byKey(const Key('nav-Wardrobe')));
   await tester.pumpAndSettle();
 }
 
@@ -111,12 +106,7 @@ void main() {
     }
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.text('Outfits'),
-      ),
-    );
+    await tester.tap(find.byKey(const Key('nav-Outfits')));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
@@ -220,12 +210,7 @@ void main() {
     }
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.text('Recommendations'),
-      ),
-    );
+    await tester.tap(find.byKey(const Key('nav-Suggestions')));
     await pumpUntilFound(tester, find.byType(RecommendationCard));
 
     expect(find.text('Archived top'), findsNothing);
@@ -265,13 +250,8 @@ void main() {
     ProviderContainer containerOf() =>
         ProviderScope.containerOf(tester.element(find.byType(WardrobeApp)));
 
-    Future<void> openSettings() async {
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavigationRail),
-          matching: find.text('Settings'),
-        ),
-      );
+    Future<void> openBackup() async {
+      await tester.tap(find.byKey(const Key('nav-Backup')));
       await tester.pumpAndSettle();
     }
 
@@ -304,7 +284,7 @@ void main() {
         .save(name: 'Boots', category: ClothingCategory.footwear);
     await tester.pumpAndSettle();
 
-    await openSettings();
+    await openBackup();
     await tester.tap(find.text('Back up wardrobe'));
     await pumpUntilFound(tester, find.text('Backup saved'));
     expect(File(backupZip).existsSync(), isTrue);
@@ -318,7 +298,7 @@ void main() {
     pickers.backupFile = backupZip;
     await tester.pumpWidget(appFor(paths2, pickers, UniqueKey()));
     await tester.pumpAndSettle();
-    await openSettings();
+    await openBackup();
     await tester.tap(find.text('Restore wardrobe'));
     await pumpUntilFound(tester, find.text('Replace your wardrobe?'));
     await tester.tap(find.widgetWithText(FilledButton, 'Replace'));

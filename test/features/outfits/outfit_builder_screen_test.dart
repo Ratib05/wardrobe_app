@@ -9,12 +9,7 @@ import 'package:wardrobe_app/features/outfits/widgets/outfit_card.dart';
 import '../../helpers.dart';
 
 Future<void> openOutfits(WidgetTester tester) async {
-  await tester.tap(
-    find.descendant(
-      of: find.byType(NavigationRail),
-      matching: find.text('Outfits'),
-    ),
-  );
+  await tester.tap(find.byKey(const Key('nav-Outfits')));
   await tester.pumpAndSettle();
 }
 
@@ -61,10 +56,7 @@ void main() {
     await openBuilder(tester);
     await pick(tester, 't1');
     await pick(tester, 'b1');
-    expect(
-      find.text('Not a complete outfit yet — add: Footwear'),
-      findsOneWidget,
-    );
+    expect(find.text('Not a complete outfit yet — add: Shoes'), findsOneWidget);
     await pick(tester, 's1');
     expect(find.textContaining('Not a complete outfit'), findsNothing);
   });
@@ -142,15 +134,25 @@ void main() {
     await pumpUntilFound(tester, find.text('Includes archived items'));
   });
 
-  testApp('favourite outfits show on the dashboard', (tester, paths) async {
+  testApp('the Favourites chip shows only favourite outfits', (
+    tester,
+    paths,
+  ) async {
     await pumpApp(
       tester,
       paths: paths,
       items: wardrobe,
-      seed: (db) =>
-          seedOutfit(db, 'o1', 'Date night', ['t1', 'b1'], favourite: true),
+      seed: (db) async {
+        await seedOutfit(db, 'o1', 'Date night', ['t1', 'b1'], favourite: true);
+        await seedOutfit(db, 'o2', 'Gym', ['b1', 's1']);
+      },
     );
-    expect(find.text('Favourite outfits'), findsOneWidget);
+    await openOutfits(tester);
     expect(find.text('Date night'), findsOneWidget);
+    expect(find.text('Gym'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilterChip, 'Favourites'));
+    await tester.pumpAndSettle();
+    expect(find.text('Date night'), findsOneWidget);
+    expect(find.text('Gym'), findsNothing);
   });
 }

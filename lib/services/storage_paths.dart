@@ -18,6 +18,14 @@ class StoragePaths {
       Directory(p.join(imagesDir.path, 'clothing'));
   Directory get tempDir => Directory(p.join(root.path, 'temporary'));
 
+  /// Automatic copies kept before risky operations (schema upgrades, restores).
+  Directory get safetyCopiesDir =>
+      Directory(p.join(root.path, 'safety-copies'));
+
+  /// Record of backups made on this device. Lives outside `data/` so a
+  /// restore does not overwrite it.
+  File get backupHistoryFile => File(p.join(root.path, 'backup_history.json'));
+
   static Future<StoragePaths> resolveDefault() async =>
       StoragePaths(await getApplicationSupportDirectory());
 

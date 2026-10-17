@@ -9,12 +9,7 @@ import 'package:wardrobe_app/database/app_database.dart';
 import '../../helpers.dart';
 
 Future<void> openAddForm(WidgetTester tester) async {
-  await tester.tap(
-    find.descendant(
-      of: find.byType(NavigationRail),
-      matching: find.text('Wardrobe'),
-    ),
-  );
+  await tester.tap(find.byKey(const Key('nav-Wardrobe')));
   await tester.pumpAndSettle();
   await tester.tap(find.text('Add item'));
   await tester.pumpAndSettle();
@@ -65,6 +60,29 @@ void main() {
     expect(items.single.imagePath, isNull);
   });
 
+  testApp('Hide from suggestions is saved', (tester, paths) async {
+    await pumpApp(tester, paths: paths);
+    await openAddForm(tester);
+    await enterName(tester, 'Stored away coat');
+    await chooseCategory(tester, 'Outerwear');
+    final hide = find.widgetWithText(
+      SwitchListTile,
+      'Hide from suggestions (in repair, stored away)',
+    );
+    await tester.scrollUntilVisible(
+      hide,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(hide);
+    await tester.pump();
+    await tapSave(tester);
+    await pumpUntilFound(tester, find.text('Stored away coat'));
+    final saved = (await allItems(tester)).single;
+    expect(saved.hideFromSuggestions, isTrue);
+  });
+
   testApp('chosen photo is stored under images/clothing', (
     tester,
     paths,
@@ -111,12 +129,7 @@ void main() {
       paths: paths,
       items: [item(id: 'e1', name: 'Old name', createdAt: created)],
     );
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.text('Wardrobe'),
-      ),
-    );
+    await tester.tap(find.byKey(const Key('nav-Wardrobe')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Old name'));
     await pumpUntilFound(tester, find.text('Edit item'));
@@ -156,12 +169,7 @@ void main() {
             );
       },
     );
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.text('Wardrobe'),
-      ),
-    );
+    await tester.tap(find.byKey(const Key('nav-Wardrobe')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Old name'));
     await pumpUntilFound(tester, find.text('Edit item'));

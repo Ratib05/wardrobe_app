@@ -6,7 +6,7 @@ enum ClothingCategory {
   bottom('Bottom'),
   onePiece('Dress / jumpsuit'),
   outerwear('Outerwear'),
-  footwear('Footwear'),
+  footwear('Shoes'),
   accessory('Accessory');
 
   const ClothingCategory(this.label);
@@ -30,13 +30,17 @@ enum WardrobeColour {
   white('White', ColourFamily.neutral, 0xFFFFFFFF),
   grey('Grey', ColourFamily.neutral, 0xFF9E9E9E),
   navy('Navy', ColourFamily.neutral, 0xFF1A237E),
+  charcoal('Charcoal', ColourFamily.neutral, 0xFF3B3B3B),
   beige('Beige', ColourFamily.neutral, 0xFFD7C4A3),
+  stone('Stone', ColourFamily.neutral, 0xFFCBBFA8),
   brown('Brown', ColourFamily.neutral, 0xFF6D4C41),
+  darkBrown('Dark brown', ColourFamily.neutral, 0xFF3E2C20),
   denim('Denim', ColourFamily.neutral, 0xFF3F5E8C),
   red('Red', ColourFamily.red, 0xFFD32F2F),
   burgundy('Burgundy', ColourFamily.red, 0xFF800020),
   pink('Pink', ColourFamily.pink, 0xFFF48FB1),
   orange('Orange', ColourFamily.orange, 0xFFFB8C00),
+  rust('Rust', ColourFamily.orange, 0xFFB7522F),
   yellow('Yellow', ColourFamily.yellow, 0xFFFDD835),
   green('Green', ColourFamily.green, 0xFF388E3C),
   olive('Olive', ColourFamily.green, 0xFF708238),
@@ -54,10 +58,10 @@ enum WardrobeColour {
 
 /// Ordered from least to most formal.
 enum Formality {
-  loungewear('Loungewear'),
+  relaxed('Relaxed'),
   casual('Casual'),
   smartCasual('Smart casual'),
-  business('Business'),
+  smart('Smart'),
   formal('Formal');
 
   const Formality(this.label);

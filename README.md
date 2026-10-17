@@ -195,7 +195,7 @@ wardrobe_app/
 │   ├── app/                 app widget, router, navigation shell, providers, shared widgets
 │   ├── core/                value lists, domain models, outfit templates (no Flutter/Drift)
 │   ├── database/            Drift tables, DAOs, generated code
-│   ├── features/            dashboard, wardrobe, outfits, recommendations (+ engine/), wishlist, settings
+│   ├── features/            wardrobe, outfits, recommendations (+ engine/), wishlist, settings (backup, preferences)
 │   └── services/            storage paths, image processing, backup and restore, platform pickers
 ├── test/                    unit, repository and widget tests (mirrors lib/)
 ├── integration_test/        end-to-end workflows A to D

@@ -6,12 +6,7 @@ import 'package:wardrobe_app/core/wardrobe_values.dart';
 import '../../helpers.dart';
 
 Future<void> openGaps(WidgetTester tester) async {
-  await tester.tap(
-    find.descendant(
-      of: find.byType(NavigationRail),
-      matching: find.text('Wishlist'),
-    ),
-  );
+  await tester.tap(find.byKey(const Key('nav-Gaps & wishlist')));
   await tester.pumpAndSettle();
   await tester.tap(find.byTooltip('Wardrobe gaps'));
   await tester.pumpAndSettle();
@@ -37,7 +32,7 @@ void main() {
   ) async {
     await pumpApp(tester, paths: paths, items: noFootwear);
     await openGaps(tester);
-    expect(find.text('Beige casual footwear'), findsOneWidget);
+    expect(find.text('Beige casual shoes'), findsOneWidget);
     expect(find.text('Needed'), findsWidgets);
     expect(
       find.textContaining('This would make 6 outfits possible'),
@@ -54,12 +49,12 @@ void main() {
     await tester.tap(
       find.widgetWithText(FilledButton, 'Add to wishlist').first,
     );
-    await pumpUntilGone(tester, find.text('Beige casual footwear'));
+    await pumpUntilGone(tester, find.text('Beige casual shoes'));
     final db = containerOf(tester).read(appDatabaseProvider);
     final row = (await tester.runAsync(
       () => db.select(db.wishlistItems).getSingle(),
     ))!;
-    expect(row.name, 'Beige casual footwear');
+    expect(row.name, 'Beige casual shoes');
     expect(row.status, WishlistStatus.planned);
     expect(row.reason, contains('This would make'));
     expect(row.preferredColours, {WardrobeColour.beige});
@@ -72,7 +67,7 @@ void main() {
     await pumpApp(tester, paths: paths, items: noFootwear);
     await openGaps(tester);
     await tester.tap(find.widgetWithText(TextButton, 'Not for me').first);
-    await pumpUntilGone(tester, find.text('Beige casual footwear'));
+    await pumpUntilGone(tester, find.text('Beige casual shoes'));
     final db = containerOf(tester).read(appDatabaseProvider);
     final row = (await tester.runAsync(
       () => db.select(db.wishlistItems).getSingle(),

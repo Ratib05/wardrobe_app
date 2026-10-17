@@ -8,26 +8,12 @@ Prioritise clear navigation, visual browsing, and minimal data entry.
 
 ## 2. Main Navigation
 
-The main navigation should include:
+The main navigation has five destinations: Wardrobe, Outfits, Suggestions, Gaps & wishlist and Backup. A small Settings link sits below them in the sidebar. The sidebar footer reads "Stored on this device" with the age of the last backup.
 
-- Dashboard
-- Wardrobe
-- Outfits
-- Recommendations
-- Wishlist
-- Settings
 
 ## 3. Dashboard
 
-Display:
-- Total active clothing items.
-- Recently added items.
-- Favourite outfits.
-- Suggested outfits.
-- Shortcuts to add clothing and create outfits.
-- Relevant wardrobe gap suggestions.
-
-Avoid overwhelming the dashboard with statistics.
+There is no dashboard. The app opens on the Wardrobe. (Superseded by the design mockups; the remaining sections are being updated screen by screen to match them.)
 
 ## 4. Wardrobe Screen
 

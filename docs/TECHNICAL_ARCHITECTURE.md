@@ -153,7 +153,7 @@ lib/
 ├── core/         value lists (enums), ClothingItem, outfit templates, exceptions
 ├── database/     Drift tables (app_database.dart), DAOs, generated code
 ├── features/
-│   ├── dashboard, wardrobe, outfits, wishlist, settings
+│   ├── wardrobe, outfits, wishlist, settings (backup screen, preferences)
 │   └── recommendations/engine/   scoring, recommendation engine, gap analysis
 └── services/     StoragePaths, ImageStorage, BackupService, PlatformPickers
 ```
@@ -163,5 +163,6 @@ lib/
 - **Background work:** recommendations and gap analysis run in a short-lived isolate (`Isolate.run`) so the UI stays responsive (about 0.6 s and 3 s for a 500-item wardrobe on a debug build). Providers expose the runners (`recommendRunnerProvider`, `gapRunnerProvider`) so tests can substitute direct calls.
 - **Database lifecycle:** `appDatabaseProvider` owns the connection. A restore closes the connection, swaps files, and invalidates the provider so every repository reconnects.
 - **Startup failures:** if storage cannot be prepared, a plain error screen explains that no data was changed (`StartupErrorApp`).
-- **Navigation:** `StatefulShellRoute.indexedStack` with six branches; a navigation rail from 600 px wide and a bottom bar below.
+- **Navigation:** `StatefulShellRoute.indexedStack` with six branches: Wardrobe, Outfits, Suggestions, Gaps & wishlist, Backup, and Settings (reached from a link in the sidebar). From 600 px wide a sidebar with a "stored on this device / last backup" footer is shown; below that a five-item bottom bar. The app opens on the Wardrobe; there is no dashboard.
+- **Theme:** `lib/app/theme.dart` holds the colours and component styles taken from the design mockups (warm off-white, indigo accent, monospace captions).
 - **Offline guarantee:** a test scans `lib/` and `pubspec.yaml` for networking, cloud and analytics usage.

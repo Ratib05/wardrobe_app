@@ -13,13 +13,13 @@ import 'package:wardrobe_app/services/backup_service.dart';
 
 import '../../helpers.dart';
 
-Future<void> openSettings(WidgetTester tester) async {
-  await tester.tap(
-    find.descendant(
-      of: find.byType(NavigationRail),
-      matching: find.text('Settings'),
-    ),
-  );
+Future<void> openSettingsPage(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('nav-Settings')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> openBackup(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('nav-Backup')));
   await tester.pumpAndSettle();
 }
 
@@ -63,7 +63,7 @@ class FailingApplyService extends BackupService {
 void main() {
   final existing = [item(id: 'old', name: 'Old thing')];
 
-  testApp('shows version, storage folder and photo status', (
+  testApp('shows storage folder and photo status on the Backup page', (
     tester,
     paths,
   ) async {
@@ -74,8 +74,7 @@ void main() {
         item(id: 'g', name: 'Ghost', imagePath: 'images/clothing/gone.jpg'),
       ],
     );
-    await openSettings(tester);
-    expect(find.text('Version dev'), findsOneWidget);
+    await openBackup(tester);
     expect(find.text(paths.root.path), findsOneWidget);
     await pumpUntilFound(tester, find.text('1 photo, 1 missing'));
   });
@@ -91,7 +90,7 @@ void main() {
       items: existing,
       pickers: FakePickers(null, saveLocation: dest),
     );
-    await openSettings(tester);
+    await openBackup(tester);
     await tester.tap(find.text('Back up wardrobe'));
     await pumpUntilFound(tester, find.text('Backup saved'));
     expect(File(dest).existsSync(), isTrue);
@@ -109,7 +108,7 @@ void main() {
       items: existing,
       pickers: FakePickers(null, backupFile: txt.path),
     );
-    await openSettings(tester);
+    await openBackup(tester);
     await tester.tap(find.text('Restore wardrobe'));
     await pumpUntilFound(
       tester,
@@ -129,7 +128,7 @@ void main() {
       items: existing,
       pickers: FakePickers(null, backupFile: zip),
     );
-    await openSettings(tester);
+    await openBackup(tester);
     await tester.tap(find.text('Restore wardrobe'));
     await pumpUntilFound(tester, find.text('Replace your wardrobe?'));
     expect(find.textContaining('Your current 1 item'), findsOneWidget);
@@ -137,12 +136,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Replace'));
     await pumpUntilFound(tester, find.textContaining('Wardrobe restored'));
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.text('Wardrobe'),
-      ),
-    );
+    await tester.tap(find.byKey(const Key('nav-Wardrobe')));
     await pumpUntilFound(tester, find.text('Restored tee'));
     expect(find.text('Restored jeans'), findsOneWidget);
     expect(find.text('Old thing'), findsNothing);
@@ -159,7 +153,7 @@ void main() {
       items: existing,
       pickers: FakePickers(null, backupFile: zip),
     );
-    await openSettings(tester);
+    await openBackup(tester);
     await tester.tap(find.text('Restore wardrobe'));
     await pumpUntilFound(tester, find.text('Replace your wardrobe?'));
     await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
@@ -187,7 +181,7 @@ void main() {
         ),
       ],
     );
-    await openSettings(tester);
+    await openBackup(tester);
     await tester.tap(find.text('Restore wardrobe'));
     await pumpUntilFound(tester, find.text('Replace your wardrobe?'));
     await tester.tap(find.widgetWithText(FilledButton, 'Replace'));
@@ -203,6 +197,12 @@ void main() {
       return db.select(db.clothingItems).getSingle();
     }))!;
     expect(dbRow.name, 'Old thing');
+  });
+
+  testApp('Settings shows the app version', (tester, paths) async {
+    await pumpApp(tester, paths: paths);
+    await openSettingsPage(tester);
+    expect(find.text('Version dev'), findsOneWidget);
   });
 
   testApp('reset dismissed recommendations clears dismissals', (
@@ -222,7 +222,7 @@ void main() {
         ),
       ),
     );
-    await openSettings(tester);
+    await openSettingsPage(tester);
     await tester.tap(find.text('Reset dismissed recommendations'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Reset'));
