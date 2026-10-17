@@ -57,6 +57,8 @@ class ClothingPhoto extends ConsumerWidget {
         );
       }
     }
-    return size == null ? child : SizedBox(width: size, height: size, child: child);
+    return size == null
+        ? child
+        : SizedBox(width: size, height: size, child: child);
   }
 }

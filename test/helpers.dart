@@ -120,7 +120,7 @@ Future<void> pumpApp(
       overrides: [
         storagePathsProvider.overrideWithValue(paths),
         appDatabaseProvider.overrideWithValue(db),
-      if (pickers != null) platformPickersProvider.overrideWithValue(pickers),
+        if (pickers != null) platformPickersProvider.overrideWithValue(pickers),
       ],
       child: const WardrobeApp(),
     ),

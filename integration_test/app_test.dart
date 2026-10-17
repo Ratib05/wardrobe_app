@@ -6,6 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:wardrobe_app/app/app.dart';
 import 'package:wardrobe_app/app/providers.dart';
+import 'package:wardrobe_app/core/wardrobe_values.dart';
+import 'package:wardrobe_app/features/outfits/widgets/outfit_card.dart';
+import 'package:wardrobe_app/features/wardrobe/wardrobe_providers.dart';
 import 'package:wardrobe_app/services/storage_paths.dart';
 
 import '../test/helpers.dart';
@@ -74,6 +77,83 @@ void main() {
     await openWardrobe(tester);
     expect(find.text('White tee'), findsOneWidget);
     expect(paths.clothingImagesDir.listSync(), hasLength(1));
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('Workflow B: create an outfit, reopen it', (tester) async {
+    final root = Directory.systemTemp.createTempSync('wardrobe_it_');
+    addTearDown(() {
+      try {
+        root.deleteSync(recursive: true);
+      } on FileSystemException {
+        // temp dir; the OS cleans it up
+      }
+    });
+    final paths = StoragePaths(root);
+    await paths.prepare();
+
+    await tester.pumpWidget(appFor(paths, FakePickers(null), UniqueKey()));
+    await tester.pumpAndSettle();
+    final repo = ProviderScope.containerOf(
+      tester.element(find.byType(WardrobeApp)),
+    ).read(clothingRepositoryProvider);
+    for (final i in [
+      item(id: 't1', name: 'Tee', category: ClothingCategory.top),
+      item(id: 'b1', name: 'Jeans', category: ClothingCategory.bottom),
+      item(id: 's1', name: 'Boots', category: ClothingCategory.footwear),
+    ]) {
+      await repo.save(i);
+    }
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('Outfits'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    for (final id in ['t1', 'b1', 's1']) {
+      final tile = find.byKey(Key('pick-$id'));
+      await tester.ensureVisible(tile);
+      await tester.pumpAndSettle();
+      await tester.tap(tile);
+      await tester.pump();
+    }
+    final casual = find.widgetWithText(FilterChip, 'Casual');
+    await tester.ensureVisible(casual.first);
+    await tester.pumpAndSettle();
+    await tester.tap(casual.first);
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Outfit name'),
+      'Weekend',
+    );
+    await tester.tap(find.widgetWithText(TextButton, 'Save'));
+    await pumpUntilFound(tester, find.byType(OutfitCard));
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(OutfitCard),
+        matching: find.text('Weekend'),
+      ),
+    );
+    await pumpUntilFound(tester, find.text('Edit outfit'));
+    await pumpUntilFound(tester, find.byKey(const Key('sel-t1')));
+    expect(find.byKey(const Key('sel-b1')), findsOneWidget);
+    expect(find.byKey(const Key('sel-s1')), findsOneWidget);
+    final nameField = tester.widget<TextField>(
+      find.widgetWithText(TextField, 'Outfit name'),
+    );
+    expect(nameField.controller!.text, 'Weekend');
+    final chip = tester.widget<FilterChip>(
+      find.widgetWithText(FilterChip, 'Casual').first,
+    );
+    expect(chip.selected, isTrue);
+
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
   });

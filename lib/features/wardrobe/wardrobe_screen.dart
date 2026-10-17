@@ -25,7 +25,9 @@ class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
   @override
   void initState() {
     super.initState();
-    _search = TextEditingController(text: ref.read(wardrobeFilterProvider).query);
+    _search = TextEditingController(
+      text: ref.read(wardrobeFilterProvider).query,
+    );
   }
 
   @override
@@ -181,10 +183,18 @@ class _Grid extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     if (item.isFavourite)
-                      const Icon(Icons.favorite, size: 16, color: Colors.redAccent),
+                      const Icon(
+                        Icons.favorite,
+                        size: 16,
+                        color: Colors.redAccent,
+                      ),
                   ],
                 ),
               ),

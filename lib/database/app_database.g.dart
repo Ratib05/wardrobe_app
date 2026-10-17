@@ -3367,6 +3367,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $RecommendationFeedbackTable recommendationFeedback =
       $RecommendationFeedbackTable(this);
   late final ClothingDao clothingDao = ClothingDao(this as AppDatabase);
+  late final OutfitDao outfitDao = OutfitDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();

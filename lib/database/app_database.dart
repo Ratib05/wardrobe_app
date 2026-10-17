@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import '../core/clothing_item.dart';
 import '../core/wardrobe_values.dart';
 import 'clothing_dao.dart';
+import 'outfit_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -162,7 +163,7 @@ class RecommendationFeedback extends Table {
     UserPreferences,
     RecommendationFeedback,
   ],
-  daos: [ClothingDao],
+  daos: [ClothingDao, OutfitDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);

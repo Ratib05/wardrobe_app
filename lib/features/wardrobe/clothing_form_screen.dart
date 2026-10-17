@@ -186,7 +186,9 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
     );
     setState(() => _saving = true);
     try {
-      await ref.read(clothingRepositoryProvider).save(item, stagedImage: _staged);
+      await ref
+          .read(clothingRepositoryProvider)
+          .save(item, stagedImage: _staged);
       _staged = null; // committed
       if (mounted) _close();
     } on ValidationException catch (e) {
@@ -218,8 +220,10 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
     final choice = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        content: Text("Delete '${item.name}'? $usage"
-            "This can't be undone."),
+        content: Text(
+          "Delete '${item.name}'? $usage"
+          "This can't be undone.",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 'cancel'),
@@ -281,24 +285,26 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
     onChanged: (s) => setState(() => onChanged(s)),
   );
 
-  Widget _textField(String label, TextEditingController c, {int? maxLines = 1}) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(
-          controller: c,
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            labelText: label,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-      );
+  Widget _textField(
+    String label,
+    TextEditingController c, {
+    int? maxLines = 1,
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: TextField(
+      controller: c,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+    ),
+  );
 
   Widget _photo() {
     final existing = _existing;
     final hasPhoto =
-        _staged != null ||
-        (existing?.imagePath != null && !_removePhoto);
+        _staged != null || (existing?.imagePath != null && !_removePhoto);
     Widget preview;
     if (_staged != null) {
       preview = Image.file(

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/dashboard/dashboard_screen.dart';
+import '../features/outfits/outfit_builder_screen.dart';
 import '../features/outfits/outfits_screen.dart';
 import '../features/recommendations/recommendations_screen.dart';
 import '../features/settings/settings_screen.dart';
@@ -47,7 +48,25 @@ GoRouter createRouter() => GoRouter(
             ),
           ],
         ),
-        _branch('/outfits', const OutfitsScreen()),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/outfits',
+              builder: (context, state) => const OutfitsScreen(),
+              routes: [
+                GoRoute(
+                  path: 'new',
+                  builder: (context, state) => const OutfitBuilderScreen(),
+                ),
+                GoRoute(
+                  path: ':id',
+                  builder: (context, state) =>
+                      OutfitBuilderScreen(outfitId: state.pathParameters['id']),
+                ),
+              ],
+            ),
+          ],
+        ),
         _branch('/recommendations', const RecommendationsScreen()),
         _branch('/wishlist', const WishlistScreen()),
         _branch('/settings', const SettingsScreen()),

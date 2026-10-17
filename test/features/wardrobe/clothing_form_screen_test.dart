@@ -9,8 +9,12 @@ import 'package:wardrobe_app/database/app_database.dart';
 import '../../helpers.dart';
 
 Future<void> openAddForm(WidgetTester tester) async {
-  await tester.tap(find.descendant(
-      of: find.byType(NavigationRail), matching: find.text('Wardrobe')));
+  await tester.tap(
+    find.descendant(
+      of: find.byType(NavigationRail),
+      matching: find.text('Wardrobe'),
+    ),
+  );
   await tester.pumpAndSettle();
   await tester.tap(find.text('Add item'));
   await tester.pumpAndSettle();
@@ -61,8 +65,15 @@ void main() {
     expect(items.single.imagePath, isNull);
   });
 
-  testApp('chosen photo is stored under images/clothing', (tester, paths) async {
-    await pumpApp(tester, paths: paths, pickers: FakePickers(writeTestJpeg(paths)));
+  testApp('chosen photo is stored under images/clothing', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(
+      tester,
+      paths: paths,
+      pickers: FakePickers(writeTestJpeg(paths)),
+    );
     await openAddForm(tester);
     await tester.tap(find.text('Choose photo'));
     await pumpUntilFound(tester, find.byKey(const Key('staged-photo')));
@@ -76,23 +87,36 @@ void main() {
   });
 
   testApp('unsupported image shows a friendly message', (tester, paths) async {
-    final txt = File('${paths.root.path}/notes.txt')..writeAsStringSync('hello');
+    final txt = File('${paths.root.path}/notes.txt')
+      ..writeAsStringSync('hello');
     await pumpApp(tester, paths: paths, pickers: FakePickers(txt.path));
     await openAddForm(tester);
     await tester.tap(find.text('Choose photo'));
     await pumpUntilFound(
       tester,
-      find.text("This image format isn't supported. Use a JPEG, PNG or WebP photo."),
+      find.text(
+        "This image format isn't supported. Use a JPEG, PNG or WebP photo.",
+      ),
     );
     expect(paths.tempDir.listSync(), isEmpty);
   });
 
-  testApp('editing updates the item and keeps createdAt', (tester, paths) async {
+  testApp('editing updates the item and keeps createdAt', (
+    tester,
+    paths,
+  ) async {
     final created = DateTime.utc(2025, 5, 5);
-    await pumpApp(tester,
-        paths: paths, items: [item(id: 'e1', name: 'Old name', createdAt: created)]);
-    await tester.tap(find.descendant(
-        of: find.byType(NavigationRail), matching: find.text('Wardrobe')));
+    await pumpApp(
+      tester,
+      paths: paths,
+      items: [item(id: 'e1', name: 'Old name', createdAt: created)],
+    );
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('Wardrobe'),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Old name'));
     await pumpUntilFound(tester, find.text('Edit item'));
@@ -111,17 +135,33 @@ void main() {
       paths: paths,
       items: [item(id: 'e1', name: 'Old name')],
       seed: (db) async {
-        await db.into(db.outfits).insert(OutfitsCompanion.insert(
-            id: 'o1',
-            name: 'O',
-            createdAt: DateTime.utc(2026),
-            updatedAt: DateTime.utc(2026)));
-        await db.into(db.outfitItems).insert(OutfitItemsCompanion.insert(
-            outfitId: 'o1', clothingItemId: 'e1', position: 0));
+        await db
+            .into(db.outfits)
+            .insert(
+              OutfitsCompanion.insert(
+                id: 'o1',
+                name: 'O',
+                createdAt: DateTime.utc(2026),
+                updatedAt: DateTime.utc(2026),
+              ),
+            );
+        await db
+            .into(db.outfitItems)
+            .insert(
+              OutfitItemsCompanion.insert(
+                outfitId: 'o1',
+                clothingItemId: 'e1',
+                position: 0,
+              ),
+            );
       },
     );
-    await tester.tap(find.descendant(
-        of: find.byType(NavigationRail), matching: find.text('Wardrobe')));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('Wardrobe'),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Old name'));
     await pumpUntilFound(tester, find.text('Edit item'));

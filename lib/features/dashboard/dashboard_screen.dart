@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/widgets/clothing_photo.dart';
+import '../outfits/outfit_providers.dart';
 import '../wardrobe/wardrobe_providers.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -12,6 +13,10 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final count = ref.watch(activeItemCountProvider);
     final items = ref.watch(wardrobeItemsProvider(false));
+    final favourites = [
+      for (final o in ref.watch(outfitsProvider).value ?? const [])
+        if (o.outfit.isFavourite) o,
+    ];
     final theme = Theme.of(context).textTheme;
     final recent = [...?items.value]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -31,12 +36,36 @@ class DashboardScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
-              onPressed: () => context.push('/wardrobe/new'),
-              icon: const Icon(Icons.add),
-              label: const Text('Add clothing'),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.icon(
+                  onPressed: () => context.push('/wardrobe/new'),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add clothing'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => context.push('/outfits/new'),
+                  icon: const Icon(Icons.style_outlined),
+                  label: const Text('Create outfit'),
+                ),
+              ],
             ),
           ),
+          if (favourites.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Text('Favourite outfits', style: theme.titleMedium),
+            for (final o in favourites)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(o.outfit.name),
+                subtitle: Text(
+                  '${o.items.length} ${o.items.length == 1 ? 'item' : 'items'}',
+                ),
+                onTap: () => context.push('/outfits/${o.outfit.id}'),
+              ),
+          ],
           if (recent.isNotEmpty) ...[
             const SizedBox(height: 24),
             Text('Recently added', style: theme.titleMedium),
