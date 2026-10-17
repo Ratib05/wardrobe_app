@@ -1,5 +1,18 @@
 # Development Roadmap
 
+## Status
+
+| Phase | Status |
+|---|---|
+| 1. Project setup | Done |
+| 2. Wardrobe management | Done |
+| 3. Outfit management | Done |
+| 4. Recommendation engine | Done |
+| 5. Wardrobe gap analysis and wishlist | Done |
+| 6. Backup and restore | Done |
+| 7. Polish and testing | Done in code; the Windows build is being used with a real wardrobe before Phase 8 |
+| 8. Android support | Not started |
+
 ## Phase 1: Project Setup
 
 - Create the Flutter project.

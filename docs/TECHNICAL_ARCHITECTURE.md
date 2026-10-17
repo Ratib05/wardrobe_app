@@ -144,3 +144,24 @@ Do not introduce:
 - AI APIs or machine-learning dependencies.
 
 These constraints may be reconsidered only if the project requirements explicitly change.
+## 10. Implemented Structure (Windows MVP)
+
+```text
+lib/
+├── app/          MaterialApp.router, go_router config, adaptive navigation shell,
+│                 Riverpod providers for storage/database/pickers, shared widgets
+├── core/         value lists (enums), ClothingItem, outfit templates, exceptions
+├── database/     Drift tables (app_database.dart), DAOs, generated code
+├── features/
+│   ├── dashboard, wardrobe, outfits, wishlist, settings
+│   └── recommendations/engine/   scoring, recommendation engine, gap analysis
+└── services/     StoragePaths, ImageStorage, BackupService, PlatformPickers
+```
+
+- **Layering:** screens read Riverpod providers; providers call repositories; repositories use Drift DAOs. No SQL appears outside `lib/database/`.
+- **Engine isolation:** `features/recommendations/engine/` imports only `lib/core/`; a test enforces that it never imports Flutter, Drift, database or service code.
+- **Background work:** recommendations and gap analysis run in a short-lived isolate (`Isolate.run`) so the UI stays responsive (about 0.6 s and 3 s for a 500-item wardrobe on a debug build). Providers expose the runners (`recommendRunnerProvider`, `gapRunnerProvider`) so tests can substitute direct calls.
+- **Database lifecycle:** `appDatabaseProvider` owns the connection. A restore closes the connection, swaps files, and invalidates the provider so every repository reconnects.
+- **Startup failures:** if storage cannot be prepared, a plain error screen explains that no data was changed (`StartupErrorApp`).
+- **Navigation:** `StatefulShellRoute.indexedStack` with six branches; a navigation rail from 600 px wide and a bottom bar below.
+- **Offline guarantee:** a test scans `lib/` and `pubspec.yaml` for networking, cloud and analytics usage.

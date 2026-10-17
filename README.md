@@ -124,7 +124,7 @@ Clone the repository:
 
 ```bash
 git clone <repository-url>
-cd personal-wardrobe
+cd wardrobe_app
 ```
 
 Install dependencies:
@@ -153,7 +153,7 @@ For Android, once Android support is configured and a device or emulator is avai
 flutter run -d android
 ```
 
-The Windows target and Android target must be enabled in the Flutter project before running on those platforms.
+Only the Windows target is configured at present. The Android target is added in the final development phase (see `docs/ROADMAP.md`).
 
 ## Development Workflow
 
@@ -178,44 +178,36 @@ Run all unit and widget tests:
 flutter test
 ```
 
-Run integration tests:
+Run integration tests (these launch the real app, so a device is required):
 
 ```bash
-flutter test integration_test
+flutter test integration_test/app_test.dart -d windows
 ```
 
-Integration test execution may require a configured desktop or mobile target.
+After changing database tables, regenerate Drift code with `dart run build_runner build`. Schema changes also need a version bump and a migration; see `docs/DATABASE_DESIGN.md`.
 
 ## Project Structure
 
 ```text
-personal-wardrobe/
-├── docs/
-│   ├── PROJECT_BRIEF.md
-│   ├── PRD.md
-│   ├── TECHNICAL_ARCHITECTURE.md
-│   ├── DATABASE_DESIGN.md
-│   ├── LOCAL_STORAGE_SPEC.md
-│   ├── RECOMMENDATION_ENGINE.md
-│   ├── UI_UX_SPEC.md
-│   ├── USER_STORIES.md
-│   ├── TESTING_PLAN.md
-│   └── ROADMAP.md
+wardrobe_app/
+├── docs/                    project documentation
 ├── lib/
-│   ├── app/
-│   ├── core/
-│   ├── database/
-│   ├── features/
-│   └── services/
-├── test/
-├── integration_test/
-├── assets/
+│   ├── app/                 app widget, router, navigation shell, providers, shared widgets
+│   ├── core/                value lists, domain models, outfit templates (no Flutter/Drift)
+│   ├── database/            Drift tables, DAOs, generated code
+│   ├── features/            dashboard, wardrobe, outfits, recommendations (+ engine/), wishlist, settings
+│   └── services/            storage paths, image processing, backup and restore, platform pickers
+├── test/                    unit, repository and widget tests (mirrors lib/)
+├── integration_test/        end-to-end workflows A to D
+├── drift_schemas/           committed snapshot of each released database schema
+├── windows/                 Windows runner
+├── build.yaml               Drift code generation settings
 ├── pubspec.yaml
 ├── README.md
 └── .gitignore
 ```
 
-This structure is the intended organisation; directories and files will be added as development progresses.
+Android support (an `android/` folder) is added in the final development phase.
 
 ## Documentation
 
@@ -238,9 +230,9 @@ Instructions and architectural constraints for AI coding assistants are kept in 
 
 ## Current Status
 
-**Status:** Planning and initial development.
+**Status:** Windows MVP implemented and tested; Android support not started.
 
-The technology stack, core requirements, and architecture have been defined. Features should be considered implemented only when the corresponding functionality and tests are in place.
+Wardrobe management, outfits, rule-based recommendations, wardrobe gap analysis, the wishlist, and backup and restore are implemented, with unit, widget and integration tests. The MVP is being used with a real wardrobe before Android work begins. Features should be considered implemented only when the corresponding functionality and tests are in place.
 
 ## Future Plans
 

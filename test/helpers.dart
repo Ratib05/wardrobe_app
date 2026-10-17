@@ -12,6 +12,8 @@ import 'package:wardrobe_app/app/app.dart';
 import 'package:wardrobe_app/app/providers.dart';
 import 'package:wardrobe_app/database/app_database.dart';
 import 'package:wardrobe_app/features/recommendations/engine/gap_analysis.dart';
+import 'package:wardrobe_app/features/recommendations/engine/recommendation_engine.dart';
+import 'package:wardrobe_app/features/recommendations/recommendations_providers.dart';
 import 'package:wardrobe_app/features/wishlist/gap_providers.dart';
 import 'package:wardrobe_app/services/platform_pickers.dart';
 import 'package:wardrobe_app/services/storage_paths.dart';
@@ -131,6 +133,7 @@ Future<void> pumpApp(
         }),
         // Direct call: isolates don't complete inside fake-async.
         gapRunnerProvider.overrideWithValue((r) async => analyseGaps(r)),
+        recommendRunnerProvider.overrideWithValue((r) async => recommend(r)),
         if (pickers != null) platformPickersProvider.overrideWithValue(pickers),
         ...overrides,
       ],

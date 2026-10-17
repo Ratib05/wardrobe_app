@@ -103,3 +103,22 @@ The MVP must:
 - Handle missing images gracefully.
 - Successfully back up and restore data.
 - Reject invalid backups without replacing existing data.
+## 9. Running the Tests
+
+```bash
+flutter analyze
+flutter test                                          # unit, repository and widget tests
+flutter test integration_test/app_test.dart -d windows   # end-to-end workflows A to D
+```
+
+### What exists
+- **Unit tests:** value lists and models, scoring rules, the recommendation engine (determinism, caps, exclusions, explanations), gap analysis, filtering, outfit rules, budget parsing.
+- **Repository and database tests:** CRUD for clothing, outfits, wishlist, preferences and feedback; foreign keys, cascades and CHECK constraints; photo replacement and orphan cleanup; image processing (rotation, resizing, metadata removal).
+- **Backup and restore tests:** archive contents, manifest, missing photos, tampered paths, invalid and hostile archives, newer versions, damaged databases, and rollback after a failed swap. Live data is checked to be byte-identical after every rejected restore.
+- **Widget tests:** navigation (wide and narrow), wardrobe browsing and filters, clothing form, outfit builder, recommendations, wishlist, gap suggestions, preferences and Settings including the restore flow.
+- **Integration tests:** Workflow A (add clothing with a photo, restart), B (create and reopen an outfit), C (recommendations exclude unavailable items and give valid explanations), D (back up, restore into a clean install, reject an invalid archive).
+- **Guards:** `test/drift/schema_test.dart` fails if the tables no longer match the committed schema snapshot (change `schemaVersion` and add a migration instead); `test/privacy_test.dart` fails on any networking, cloud or analytics usage; `test/performance_test.dart` times filtering, recommendations and gap analysis on a seeded 500-item wardrobe.
+
+### Notes for test authors
+- Widget tests run inside Flutter's fake clock; real file and database work needs the helpers in `test/helpers.dart` (`testApp`, `pumpApp`, `pumpUntilFound`, `pumpUntilGone`).
+- Seed data through `pumpApp(items: ..., seed: ...)` before the app starts; writing several rows while stream listeners are active stalls under fake time.

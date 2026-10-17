@@ -1,3 +1,5 @@
+import 'dart:isolate';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
@@ -17,6 +19,16 @@ final recommendationRepositoryProvider = Provider<RecommendationRepository>(
 
 final preferencesProvider = StreamProvider<RecommendationPreferences>(
   (ref) => ref.watch(recommendationRepositoryProvider).watchPreferences(),
+);
+
+typedef RecommendRunner =
+    Future<List<Recommendation>> Function(RecommendationRequest request);
+
+/// Runs the engine off the UI isolate (about 0.6 s for a 500-item wardrobe).
+/// Tests override this with a direct call.
+final recommendRunnerProvider = Provider<RecommendRunner>(
+  (ref) =>
+      (request) => Isolate.run(() => recommend(request)),
 );
 
 /// Optional occasion/season to favour. Records have value equality, so this
@@ -56,7 +68,7 @@ final recommendationsProvider =
           .read(outfitRepositoryProvider)
           .savedFingerprints();
       final eligible = items.where((i) => isEligible(i, prefs)).toList();
-      final recs = recommend(
+      final recs = await ref.read(recommendRunnerProvider)(
         RecommendationRequest(
           items: eligible,
           preferences: prefs,
