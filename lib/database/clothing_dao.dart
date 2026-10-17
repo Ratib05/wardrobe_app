@@ -63,6 +63,15 @@ class ClothingDao extends DatabaseAccessor<AppDatabase>
     return query.map((row) => row.read(count) ?? 0).getSingle();
   }
 
+  /// Every non-null photo path referenced by an item (including archived).
+  Future<List<String>> allImagePaths() async {
+    final query = selectOnly(clothingItems)
+      ..addColumns([clothingItems.imagePath])
+      ..where(clothingItems.imagePath.isNotNull());
+    final rows = await query.get();
+    return [for (final r in rows) r.read(clothingItems.imagePath)!];
+  }
+
   Future<void> deleteById(String id) =>
       (delete(clothingItems)..where((t) => t.id.equals(id))).go();
 }

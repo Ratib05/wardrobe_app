@@ -42,3 +42,12 @@ final filteredWardrobeProvider =
       final filter = ref.watch(wardrobeFilterProvider);
       return ref.watch(wardrobeItemsProvider(archived)).whenData(filter.apply);
     });
+
+/// Photo count and missing-photo count; refreshes when the wardrobe changes.
+final photoStatusProvider = FutureProvider<({int total, int missing})>((
+  ref,
+) async {
+  ref.watch(wardrobeItemsProvider(false));
+  ref.watch(wardrobeItemsProvider(true));
+  return ref.read(clothingRepositoryProvider).photoStatus();
+});

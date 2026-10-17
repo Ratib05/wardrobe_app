@@ -73,6 +73,17 @@ class ClothingRepository {
   Future<void> setFavourite(String id, bool favourite) =>
       _db.clothingDao.setFavourite(id, favourite, DateTime.now());
 
+  /// How many photos items reference and how many of those files are gone.
+  Future<({int total, int missing})> photoStatus() async {
+    final paths = await _db.clothingDao.allImagePaths();
+    var missing = 0;
+    for (final path in paths) {
+      final file = _images.fileFor(path);
+      if (file == null || !file.existsSync()) missing++;
+    }
+    return (total: paths.length, missing: missing);
+  }
+
   Future<int> outfitCount(String id) => _db.clothingDao.outfitCount(id);
 
   /// Deletes the item (outfit links cascade) and then its photo file.

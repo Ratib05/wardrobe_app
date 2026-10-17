@@ -8,9 +8,11 @@ import 'package:wardrobe_app/app/app.dart';
 import 'package:wardrobe_app/app/providers.dart';
 import 'package:wardrobe_app/core/clothing_item.dart';
 import 'package:wardrobe_app/core/wardrobe_values.dart';
+import 'package:wardrobe_app/features/outfits/outfit_providers.dart';
 import 'package:wardrobe_app/features/outfits/widgets/outfit_card.dart';
 import 'package:wardrobe_app/features/recommendations/widgets/recommendation_card.dart';
 import 'package:wardrobe_app/features/wardrobe/wardrobe_providers.dart';
+import 'package:wardrobe_app/features/wishlist/wishlist_providers.dart';
 import 'package:wardrobe_app/services/storage_paths.dart';
 
 import '../test/helpers.dart';
@@ -240,6 +242,114 @@ void main() {
     for (final e in reasons) {
       expect((e.widget as Text).data, matches(allowed));
     }
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('Workflow D: back up, restore into a clean install', (
+    tester,
+  ) async {
+    Directory freshRoot() {
+      final root = Directory.systemTemp.createTempSync('wardrobe_it_');
+      addTearDown(() {
+        try {
+          root.deleteSync(recursive: true);
+        } on FileSystemException {
+          // temp dir; the OS cleans it up
+        }
+      });
+      return root;
+    }
+
+    ProviderContainer containerOf() =>
+        ProviderScope.containerOf(tester.element(find.byType(WardrobeApp)));
+
+    Future<void> openSettings() async {
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationRail),
+          matching: find.text('Settings'),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    final backupZip = '${freshRoot().path}${Platform.pathSeparator}backup.zip';
+
+    // --- Install 1: create data and back it up.
+    final paths1 = StoragePaths(freshRoot());
+    await paths1.prepare();
+    final pickers = FakePickers(writeTestJpeg(paths1), saveLocation: backupZip);
+    await tester.pumpWidget(appFor(paths1, pickers, UniqueKey()));
+    await tester.pumpAndSettle();
+    var c = containerOf();
+    final staged = await c.read(imageStorageProvider).stage(pickers.imagePath!);
+    await c
+        .read(clothingRepositoryProvider)
+        .save(
+          item(id: 'tee', name: 'Tee', category: ClothingCategory.top),
+          stagedImage: staged,
+        );
+    await c
+        .read(clothingRepositoryProvider)
+        .save(
+          item(id: 'jeans', name: 'Jeans', category: ClothingCategory.bottom),
+        );
+    await c
+        .read(outfitRepositoryProvider)
+        .save(name: 'Weekend', itemIds: ['tee', 'jeans']);
+    await c
+        .read(wishlistRepositoryProvider)
+        .save(name: 'Boots', category: ClothingCategory.footwear);
+    await tester.pumpAndSettle();
+
+    await openSettings();
+    await tester.tap(find.text('Back up wardrobe'));
+    await pumpUntilFound(tester, find.text('Backup saved'));
+    expect(File(backupZip).existsSync(), isTrue);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+
+    // --- Install 2: clean, restore the backup.
+    final paths2 = StoragePaths(freshRoot());
+    await paths2.prepare();
+    pickers.backupFile = backupZip;
+    await tester.pumpWidget(appFor(paths2, pickers, UniqueKey()));
+    await tester.pumpAndSettle();
+    await openSettings();
+    await tester.tap(find.text('Restore wardrobe'));
+    await pumpUntilFound(tester, find.text('Replace your wardrobe?'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Replace'));
+    await pumpUntilFound(tester, find.textContaining('Wardrobe restored'));
+
+    c = containerOf();
+    final items = await c.read(clothingRepositoryProvider).watchItems().first;
+    expect(items.map((i) => i.name).toSet(), {'Tee', 'Jeans'});
+    final tee = items.firstWhere((i) => i.name == 'Tee');
+    expect(tee.imagePath, isNotNull);
+    expect(paths2.imageFile(tee.imagePath!).existsSync(), isTrue);
+    final outfits = await c.read(outfitRepositoryProvider).watchAll().first;
+    expect(outfits.single.items.map((i) => i.name).toSet(), {'Tee', 'Jeans'});
+    expect(await c.read(wishlistRepositoryProvider).all(), hasLength(1));
+
+    // --- An invalid archive is rejected and nothing changes.
+    final notABackup = File('${paths2.root.path}${Platform.pathSeparator}x.zip')
+      ..writeAsStringSync('not a zip');
+    pickers.backupFile = notABackup.path;
+    await tester.tap(find.text('Restore wardrobe'));
+    await pumpUntilFound(
+      tester,
+      find.text("This file isn't a wardrobe backup."),
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'OK'));
+    await tester.pumpAndSettle();
+    final after = await containerOf()
+        .read(clothingRepositoryProvider)
+        .watchItems()
+        .first;
+    expect(after, hasLength(2));
 
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();

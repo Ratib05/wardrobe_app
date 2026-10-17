@@ -173,6 +173,18 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 1;
 
+  /// Record counts for the user-visible tables (used in backups).
+  Future<Map<String, int>> tableCounts() async {
+    Future<int> count(String table) async => (await customSelect(
+      'SELECT COUNT(*) AS c FROM $table',
+    ).getSingle()).read<int>('c');
+    return {
+      'clothingItems': await count('clothing_items'),
+      'outfits': await count('outfits'),
+      'wishlistItems': await count('wishlist_items'),
+    };
+  }
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),

@@ -123,3 +123,42 @@ Clothing management, outfit creation, recommendations, wishlist management, and 
 - Unsupported images produce "This image format isn't supported. Use a JPEG, PNG or WebP photo."
 - The old photo file is deleted only after the database write succeeds. If the write fails, the new photo is removed.
 - `image_cropper` does not support Windows, so the Windows build has no cropping; grids show a centred crop.
+
+## 12. Implemented Backup and Restore (version 1)
+
+Code: `lib/services/backup_service.dart` (archive logic), `lib/features/settings/backup_controller.dart` (file dialogs and live-database handling), Settings screen.
+
+### Backup
+1. A consistent database snapshot is taken with SQLite `VACUUM INTO` (it keeps the schema version).
+2. Every photo referenced by an item is copied if it exists. Missing photos, and any path that points outside `images/`, are skipped and reported to the user ("N photos could not be found on this device").
+3. `manifest.json` is written, the folder is zipped, and the archive is re-opened to confirm it contains the manifest, the database and every listed photo.
+4. The archive is written next to its destination as `<name>.partial` and renamed, so a failed backup leaves no half-written file. Temporary files are always removed.
+
+Archive layout: `manifest.json`, `database/wardrobe.db`, `images/clothing/<id>.jpg`.
+
+Manifest fields: `format` ("wardrobe-backup"), `formatVersion` (1), `appVersion`, `schemaVersion`, `createdAt` (UTC ISO-8601), `counts` (`clothingItems`, `outfits`, `wishlistItems`), `images` (relative paths).
+
+### Restore
+Validation happens entirely in a staging folder (`temporary/restore-<id>/`) before the user is asked to confirm, in this order. Any failure removes the staging folder, leaves live data untouched, and reports one of these messages:
+
+| Check | Message |
+|---|---|
+| Not a readable ZIP, no valid manifest | "This file isn't a wardrobe backup." |
+| `formatVersion` is not 1 | "This backup uses a format this app can't read." |
+| `schemaVersion` newer than the app's | "This backup was made by a newer version of the app. Update the app first." |
+| Database missing, fails SQLite `integrity_check`, `user_version` differs from the manifest, has foreign-key violations, or cannot be opened | "The backup's database is damaged and can't be restored." |
+
+Archive entries that would extract outside the staging folder (for example `../x`) are skipped. Older backups are migrated by opening the staged copy with the app's own schema. Photos referenced by the database but absent from the archive are listed as a warning, not an error.
+
+The confirmation dialog shows the current record counts, the backup's date and counts, and the number of missing photos. On confirm:
+1. The live database connection is closed (the connection itself, because Riverpod pauses listeners on off-screen tabs and drift's `close()` would wait for them).
+2. The live `data/` and `images/` folders are moved to `temporary/pre-restore-<id>/`; the staged `database/` and `images/` folders are moved into place.
+3. If any step fails, the partly placed folders are removed, the originals are moved back, and the user sees "Restore failed. Your existing wardrobe was kept."
+4. On success the rollback and staging folders are deleted. In both cases the database connection is reopened and the image cache is cleared.
+
+### Settings
+Back up wardrobe, Restore wardrobe (with the warning "Restoring replaces your current wardrobe."), the data folder path, photo and missing-photo counts, recommendation preferences, "Reset dismissed recommendations", and the app version. Buttons are disabled and a progress bar is shown while a backup or restore runs.
+
+### Limitations
+- The save and open dialogs use `file_selector`, which supports Windows, macOS and Linux. Android needs a different export route (see the roadmap, Phase 8).
+- A backup stored only on the same device is lost with the device; the Settings screen reminds the user next to the Back up button.

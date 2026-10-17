@@ -32,3 +32,7 @@ final imageStorageProvider = Provider<ImageStorage>(
 final platformPickersProvider = Provider<PlatformPickers>(
   (ref) => const PlatformPickers(),
 );
+
+/// App version shown in Settings and written to backups; main() overrides it
+/// with the real version.
+final appVersionProvider = Provider<String>((ref) => 'dev');

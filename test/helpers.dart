@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wardrobe_app/app/app.dart';
 import 'package:wardrobe_app/app/providers.dart';
@@ -72,8 +73,6 @@ Future<StoragePaths> tempPaths() async {
   return paths;
 }
 
-AppDatabase? _openDb;
-
 /// testWidgets wrapper for app-level tests: unmounts the app and closes the
 /// database before the test ends so drift's stream timers don't leak.
 void testApp(
@@ -91,8 +90,6 @@ void testApp(
     } finally {
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(milliseconds: 1));
-      await tester.runAsync(() async => _openDb?.close());
-      _openDb = null;
     }
   });
 }
@@ -104,27 +101,38 @@ Future<void> pumpApp(
   List<ClothingItem> items = const [],
   Future<void> Function(AppDatabase db)? seed,
   PlatformPickers? pickers,
+  List<Override> overrides = const [],
 }) async {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-  // Same-isolate database keeps widget tests in fake-async.
-  final db = _openDb = AppDatabase(NativeDatabase(paths.databaseFile));
-  // Seed before any stream listener exists; sequential writes with live
-  // listeners stall under fake-async.
-  await tester.runAsync(() async {
-    for (final i in items) {
-      await db.clothingDao.upsert(i);
-    }
-    if (seed != null) await seed(db);
-  });
+  // Seed through a temporary connection before the app (and any stream
+  // listener) exists; sequential writes with live listeners stall under
+  // fake-async.
+  if (items.isNotEmpty || seed != null) {
+    await tester.runAsync(() async {
+      final db = AppDatabase(NativeDatabase(paths.databaseFile));
+      for (final i in items) {
+        await db.clothingDao.upsert(i);
+      }
+      if (seed != null) await seed(db);
+      await db.close();
+    });
+  }
   await tester.pumpWidget(
     ProviderScope(
       retry: (_, _) => null,
       overrides: [
         storagePathsProvider.overrideWithValue(paths),
-        appDatabaseProvider.overrideWithValue(db),
+        // A factory (not a value) so a restore can close and reopen it. The
+        // same-isolate connection keeps widget tests in fake-async.
+        appDatabaseProvider.overrideWith((ref) {
+          final db = AppDatabase(NativeDatabase(paths.databaseFile));
+          ref.onDispose(db.close);
+          return db;
+        }),
         // Direct call: isolates don't complete inside fake-async.
         gapRunnerProvider.overrideWithValue((r) async => analyseGaps(r)),
         if (pickers != null) platformPickersProvider.overrideWithValue(pickers),
+        ...overrides,
       ],
       child: const WardrobeApp(),
     ),
@@ -139,13 +147,22 @@ Uint8List jpegBytes({int width = 64, int height = 32}) =>
 ProviderContainer containerOf(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(WardrobeApp)));
 
-/// Returns a fixed path from the "gallery".
+/// Returns fixed paths instead of opening file dialogs.
 class FakePickers extends PlatformPickers {
-  FakePickers(this.imagePath);
+  FakePickers(this.imagePath, {this.saveLocation, this.backupFile});
   String? imagePath;
+  String? saveLocation;
+  String? backupFile;
 
   @override
   Future<String?> pickImagePath() async => imagePath;
+
+  @override
+  Future<String?> chooseBackupSaveLocation(String suggestedName) async =>
+      saveLocation;
+
+  @override
+  Future<String?> chooseBackupFile() async => backupFile;
 }
 
 /// Pumps (letting real IO/DB futures complete) until [finder] matches.
