@@ -10,7 +10,7 @@ import '../helpers.dart';
 const sections = {
   'Wardrobe': 'Wardrobe',
   'Outfits': 'Outfits',
-  'Suggestions': 'Recommendations',
+  'Suggestions': 'Suggested outfits',
   'Gaps & wishlist': 'Wishlist',
   'Backup': 'Backup',
   'Settings': 'Settings',
@@ -33,7 +33,11 @@ void main() {
       final heading = label == 'Wardrobe'
           ? find.text('Your wardrobe')
           : find.descendant(
-              of: find.byType(label == 'Outfits' ? PageHeader : AppBar),
+              of: find.byType(
+                ['Outfits', 'Suggestions', 'Settings'].contains(label)
+                    ? PageHeader
+                    : AppBar,
+              ),
               matching: find.text(title),
             );
       expect(heading, findsOneWidget, reason: label);

@@ -228,6 +228,14 @@ void main() {
       r'Matches your preferences|You rated this \d/5|'
       r'You liked this combination|Meets the basic outfit rules)$',
     );
+    // Reasons live in the collapsed "Why this outfit" section.
+    final tiles = find.text('Why this outfit');
+    for (var i = 0; i < tiles.evaluate().length; i++) {
+      await tester.ensureVisible(tiles.at(i));
+      await tester.pumpAndSettle();
+      await tester.tap(tiles.at(i));
+      await tester.pumpAndSettle();
+    }
     final reasons = find.byKey(const Key('reason')).evaluate();
     expect(reasons, isNotEmpty);
     for (final e in reasons) {

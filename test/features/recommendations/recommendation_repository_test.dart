@@ -5,6 +5,7 @@ import 'package:wardrobe_app/core/wardrobe_values.dart';
 import 'package:wardrobe_app/database/app_database.dart';
 import 'package:wardrobe_app/features/outfits/outfit_repository.dart';
 import 'package:wardrobe_app/features/recommendations/engine/recommendation_engine.dart';
+import 'package:wardrobe_app/features/recommendations/engine/scoring.dart';
 import 'package:wardrobe_app/features/recommendations/recommendation_repository.dart';
 
 import '../../helpers.dart';
@@ -80,5 +81,42 @@ void main() {
     await outfits.save(name: 'Mine', itemIds: ['t', 'b', 's']);
     final fp = outfitFingerprint(['t', 'b', 's']);
     expect((await repo.feedbackSummaries())[fp]!.liked, isTrue);
+  });
+
+  group('score weights', () {
+    test(
+      'default is null; stored weights are normalised to fractions',
+      () async {
+        expect(await repo.watchWeights().first, isNull);
+        await repo.setWeights({
+          for (final f in ScoreFactor.values)
+            f: f == ScoreFactor.colour ? 30 : 10,
+        });
+        final w = (await repo.watchWeights().first)!;
+        expect(w.values.fold(0.0, (a, b) => a + b), closeTo(1, 1e-9));
+        expect(w[ScoreFactor.colour], closeTo(0.3 / 0.9, 1e-9));
+      },
+    );
+
+    test('reset returns to defaults; preferences are untouched', () async {
+      await repo.setPreference(PreferenceType.preferredColour, 'navy', true);
+      await repo.setWeights({ScoreFactor.colour: 1});
+      await repo.resetWeights();
+      expect(await repo.watchWeights().first, isNull);
+      expect((await repo.watchPreferences().first).preferredColours, {
+        WardrobeColour.navy,
+      });
+    });
+
+    test('all-zero or negative weights are rejected', () async {
+      expect(
+        () => repo.setWeights({for (final f in ScoreFactor.values) f: 0}),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => repo.setWeights({ScoreFactor.colour: -1}),
+        throwsA(isA<ValidationException>()),
+      );
+    });
   });
 }

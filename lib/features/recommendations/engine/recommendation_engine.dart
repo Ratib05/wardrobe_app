@@ -45,6 +45,7 @@ class Recommendation {
     required this.score,
     required this.factors,
     required this.reasons,
+    this.weights,
   });
 
   final String fingerprint;
@@ -54,7 +55,59 @@ class Recommendation {
   final Map<ScoreFactor, FactorScore> factors;
   final List<String> reasons;
 
+  /// Weights (fractions summing to 1) used to score this outfit; null means
+  /// the defaults.
+  final Map<ScoreFactor, double>? weights;
+
   MatchLabel get label => MatchLabel.of(score);
+
+  /// Score out of 100.
+  int get points => (score * 100).round();
+
+  /// Points this factor contributed, out of [maxPoints] for the factor.
+  int factorPoints(ScoreFactor f) =>
+      (_weight(f) * factors[f]!.value * 100).round();
+
+  int maxPoints(ScoreFactor f) => (_weight(f) * 100).round();
+
+  double _weight(ScoreFactor f) => weights?[f] ?? f.defaultWeight;
+
+  /// Short deterministic title such as "Crisp and neutral".
+  String get title => outfitTitle(items);
+}
+
+/// Names an outfit from its formality and colours.
+String outfitTitle(List<ClothingItem> items) {
+  final levels = [
+    for (final i in items)
+      if (i.formality != null) i.formality!.index,
+  ];
+  final lead = levels.isEmpty
+      ? 'Classic'
+      : switch (Formality.values[(levels.reduce((a, b) => a + b) /
+                levels.length)
+            .round()]) {
+          Formality.relaxed => 'Laid-back',
+          Formality.casual => 'Easy',
+          Formality.smartCasual => 'Crisp',
+          Formality.smart => 'Sharp',
+          Formality.formal => 'Dressy',
+        };
+  final colours = [
+    for (final i in items)
+      if (i.primaryColour != null) i.primaryColour!,
+  ];
+  final String tone;
+  if (colours.isEmpty) {
+    tone = 'simple';
+  } else if (colours.every((c) => c.isNeutral)) {
+    tone = 'neutral';
+  } else if (colours.map((c) => c.family).toSet().length == 1) {
+    tone = 'tonal';
+  } else {
+    tone = 'colourful';
+  }
+  return '$lead and $tone';
 }
 
 class RecommendationRequest {
@@ -64,6 +117,7 @@ class RecommendationRequest {
     this.feedback = const {},
     this.occasion,
     this.season,
+    this.formality,
     this.limit = 20,
     this.maxPerCategory = 15,
     this.maxOuterwear = 6,
@@ -78,6 +132,9 @@ class RecommendationRequest {
   final Map<String, FeedbackSummary> feedback;
   final Occasion? occasion;
   final Season? season;
+
+  /// Only items of this formality, or with none recorded, are used.
+  final Formality? formality;
   final int limit;
   final int maxPerCategory;
   final int maxOuterwear;
@@ -114,7 +171,13 @@ List<ClothingItem> _capped(
 }
 
 /// Generates, validates, scores and ranks outfits from [request.items].
-List<Recommendation> recommend(RecommendationRequest request) {
+List<Recommendation> recommend(RecommendationRequest request) =>
+    recommendWithTotal(request).top;
+
+/// Like [recommend], also returning how many valid combinations were ranked.
+({List<Recommendation> top, int total}) recommendWithTotal(
+  RecommendationRequest request,
+) {
   final weights = {
     for (final f in ScoreFactor.values)
       f: request.weights?[f] ?? f.defaultWeight,
@@ -123,6 +186,11 @@ List<Recommendation> recommend(RecommendationRequest request) {
   final byCategory = <ClothingCategory, List<ClothingItem>>{};
   for (final item in request.items) {
     if (!isEligible(item, request.preferences)) continue;
+    if (request.formality != null &&
+        item.formality != null &&
+        item.formality != request.formality) {
+      continue;
+    }
     byCategory.putIfAbsent(item.category, () => []).add(item);
   }
   final pools = {
@@ -183,9 +251,12 @@ List<Recommendation> recommend(RecommendationRequest request) {
     final c = b.score.compareTo(a.score);
     return c != 0 ? c : a.fingerprint.compareTo(b.fingerprint);
   });
-  return results.length > request.limit
-      ? results.sublist(0, request.limit)
-      : results;
+  return (
+    top: results.length > request.limit
+        ? results.sublist(0, request.limit)
+        : results,
+    total: results.length,
+  );
 }
 
 Recommendation? _score(
@@ -232,6 +303,7 @@ Recommendation? _score(
     score: score,
     factors: factors,
     reasons: reasons.isEmpty ? const [_fallbackReason] : reasons,
+    weights: request.weights == null ? null : weights,
   );
 }
 

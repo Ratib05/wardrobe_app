@@ -222,6 +222,7 @@ class _OutfitBuilderScreenState extends ConsumerState<OutfitBuilderScreen> {
     final prefs =
         ref.watch(preferencesProvider).value ??
         const RecommendationPreferences();
+    final weights = ref.watch(scoreWeightsProvider).value;
     final byId = _lookup(active);
     final selectedItems = [
       for (final id in _selected)
@@ -232,8 +233,8 @@ class _OutfitBuilderScreenState extends ConsumerState<OutfitBuilderScreen> {
     final wide = width >= 1000;
 
     final slots = _slotsCard(byId);
-    final picker = _pickerCard(active, byId, selectedItems, prefs);
-    final check = _checkCard(selectedItems, prefs);
+    final picker = _pickerCard(active, byId, selectedItems, prefs, weights);
+    final check = _checkCard(selectedItems, prefs, weights);
     final details = _detailsCard(complete);
 
     final header = PageHeader(
@@ -412,6 +413,7 @@ class _OutfitBuilderScreenState extends ConsumerState<OutfitBuilderScreen> {
     Map<String, ClothingItem> byId,
     List<ClothingItem> selectedItems,
     RecommendationPreferences prefs,
+    Map<ScoreFactor, double>? weights,
   ) {
     final slot = _active;
     final pool = [
@@ -431,6 +433,7 @@ class _OutfitBuilderScreenState extends ConsumerState<OutfitBuilderScreen> {
             ],
             occasion: _occasion,
             preferences: prefs,
+            weights: weights,
           )
         : [
             for (final i
@@ -461,11 +464,20 @@ class _OutfitBuilderScreenState extends ConsumerState<OutfitBuilderScreen> {
     );
   }
 
-  Widget _checkCard(List<ClothingItem> items, RecommendationPreferences prefs) {
+  Widget _checkCard(
+    List<ClothingItem> items,
+    RecommendationPreferences prefs,
+    Map<ScoreFactor, double>? weights,
+  ) {
     final warnings = items.isEmpty ? const <String>[] : outfitWarnings(items);
     final check = items.length < 2
         ? null
-        : outfitCheck(items, occasion: _occasion, preferences: prefs);
+        : outfitCheck(
+            items,
+            occasion: _occasion,
+            preferences: prefs,
+            weights: weights,
+          );
     return _card(
       'Outfit check',
       Column(

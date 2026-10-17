@@ -138,7 +138,7 @@ Not archived, condition not "Needs repair" ("unavailable"), primary colour not i
 ### Explanations and labels
 - A factor supplies a reason only when it scores at least 0.75, and the wording matches the rule that produced it: "Colours are compatible", "All items suit {occasion}" (every item tagged) or "No item conflicts with {occasion}" (some items untagged), "Items share an occasion: {x}", "Formality levels are consistent", "Items share a style: {x}", "Suitable for {season}" / "No item conflicts with {season}" / "Items share a season: {x}", "Matches your preferences", "You rated this {r}/5", "You liked this combination".
 - The top three reasons by weighted contribution are shown; if none qualify the card says "Meets the basic outfit rules".
-- Labels: 0.75 and above "Strong match", 0.55 and above "Good match", otherwise "Possible match". Numeric scores are never shown.
+- Labels: 0.75 and above "Strong match", 0.55 and above "Good match", otherwise "Possible match". The score is also shown out of 100 (rounded), with per-factor points (weight × factor value, out of the factor's weight) in the expandable "Why this outfit" section.
 
 ### Feedback
 - Save creates an outfit and records "saved"; Favourite creates a favourite outfit and records "liked"; Rate records a rating from 1 to 5.
@@ -173,3 +173,11 @@ Needed first, then by the number of new outfits, then the number of distinct ite
 ### Differences from the original specification
 - Budget does not affect ranking, because imaginary items have no price.
 - Dismissed gap suggestions are stored as wishlist entries rather than in a separate table.
+
+### Weights, titles and the outfit check
+
+- **Custom weights:** stored as `user_preferences` rows of type `scoreWeight` (value = factor name, `weight` = relative strength). They are normalised to sum to 1 when read; no rows means the defaults. All-zero or negative weights are rejected.
+- **Titles:** a deterministic name from the outfit's average formality (Laid-back, Easy, Crisp, Sharp, Dressy, or Classic when unknown) and its colours (neutral, tonal, colourful, or simple when unknown), for example "Crisp and neutral".
+- **Formality filter:** keeps items of the chosen formality and items with none recorded. **Must include** uses the engine's `mustInclude` hook.
+- **Valid combinations:** `recommendWithTotal` also returns the number of valid, non-dismissed combinations before the top 20 are cut.
+- **Outfit check (builder):** `outfitCheck` scores a hand-built outfit with the same factors and weights (feedback is neutral). Notes are factor reasons (0.75 or more) and weaknesses (below 0.5). `rankShoes` orders shoes by that score and labels them Strong fit, Good fit, Slightly formal or Slightly casual from formality relative to the other chosen items.

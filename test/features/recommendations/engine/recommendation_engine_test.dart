@@ -23,6 +23,7 @@ ClothingItem coat(String id) =>
     item(id: id, category: ClothingCategory.outerwear);
 
 void main() {
+  titleAndTotalTests();
   test('too few categories gives no results and a reason', () {
     final items = [top('t'), bottom('b')];
     expect(recommend(RecommendationRequest(items: items)), isEmpty);
@@ -202,5 +203,88 @@ void main() {
         expect(line, isNot(contains('/services/')), reason: f.path);
       }
     }
+  });
+}
+
+void titleAndTotalTests() {
+  group('titles, totals and points', () {
+    test('title follows formality and colours', () {
+      expect(
+        outfitTitle([
+          item(
+            id: 'a',
+            primaryColour: WardrobeColour.navy,
+            formality: Formality.smartCasual,
+          ),
+          item(id: 'b', primaryColour: WardrobeColour.white),
+        ]),
+        'Crisp and neutral',
+      );
+      expect(
+        outfitTitle([
+          item(id: 'a', primaryColour: WardrobeColour.red),
+          item(id: 'b', primaryColour: WardrobeColour.blue),
+        ]),
+        'Classic and colourful',
+      );
+    });
+
+    test('total counts every valid combination, top is capped', () {
+      final items = [
+        for (var i = 0; i < 3; i++) ...[
+          item(id: 't$i', category: ClothingCategory.top),
+          item(id: 'b$i', category: ClothingCategory.bottom),
+          item(id: 's$i', category: ClothingCategory.footwear),
+        ],
+      ];
+      final r = recommendWithTotal(
+        RecommendationRequest(items: items, limit: 5),
+      );
+      expect(r.total, 27);
+      expect(r.top, hasLength(5));
+    });
+
+    test('points use custom weights and add up to the score', () {
+      final items = [
+        item(id: 't', category: ClothingCategory.top),
+        item(id: 'b', category: ClothingCategory.bottom),
+        item(id: 's', category: ClothingCategory.footwear),
+      ];
+      final weights = {
+        for (final f in ScoreFactor.values)
+          f: f == ScoreFactor.colour ? 0.4 : 0.1,
+      };
+      final rec = recommend(
+        RecommendationRequest(items: items, weights: weights),
+      ).single;
+      expect(rec.maxPoints(ScoreFactor.colour), 40);
+      expect(rec.maxPoints(ScoreFactor.style), 10);
+      expect(rec.points, 50);
+    });
+
+    test('the formality filter keeps matching and unrecorded items', () {
+      final items = [
+        item(
+          id: 't1',
+          category: ClothingCategory.top,
+          formality: Formality.formal,
+        ),
+        item(
+          id: 't2',
+          category: ClothingCategory.top,
+          formality: Formality.casual,
+        ),
+        item(id: 't3', category: ClothingCategory.top),
+        item(id: 'b', category: ClothingCategory.bottom),
+        item(id: 's', category: ClothingCategory.footwear),
+      ];
+      final recs = recommend(
+        RecommendationRequest(items: items, formality: Formality.casual),
+      );
+      final tops = recs.map(
+        (r) => r.items.firstWhere((i) => i.category == ClothingCategory.top).id,
+      );
+      expect(tops.toSet(), {'t2', 't3'});
+    });
   });
 }

@@ -46,12 +46,56 @@ class RecommendationRepository {
     );
   }
 
+  /// Custom score weights as fractions summing to 1, or null for defaults.
+  Stream<Map<ScoreFactor, double>?> watchWeights() =>
+      _db.recommendationDao.watchPreferences().map((rows) {
+        final byName = ScoreFactor.values.asNameMap();
+        final raw = <ScoreFactor, double>{
+          for (final r in rows)
+            if (r.preferenceType == PreferenceType.scoreWeight &&
+                byName[r.preferenceValue] != null)
+              byName[r.preferenceValue]!: r.weight ?? 0,
+        };
+        if (raw.isEmpty) return null;
+        final full = {
+          for (final f in ScoreFactor.values)
+            f: raw[f] ?? f.defaultWeight * 100,
+        };
+        final sum = full.values.fold(0.0, (a, b) => a + b);
+        if (sum <= 0) return null;
+        return {for (final e in full.entries) e.key: e.value / sum};
+      });
+
+  /// Stores relative weights (any non-negative scale; normalised on read).
+  Future<void> setWeights(Map<ScoreFactor, double> raw) {
+    if (raw.values.any((w) => w < 0) || raw.values.every((w) => w == 0)) {
+      throw const ValidationException('Give at least one factor some weight');
+    }
+    return _db.transaction(() async {
+      final dao = _db.recommendationDao;
+      await dao.deleteByType(PreferenceType.scoreWeight);
+      for (final e in raw.entries) {
+        await dao.upsertPreference(
+          UserPreferencesCompanion(
+            preferenceType: const Value(PreferenceType.scoreWeight),
+            preferenceValue: Value(e.key.name),
+            weight: Value(e.value),
+            createdAt: Value(DateTime.now()),
+          ),
+        );
+      }
+    });
+  }
+
+  Future<void> resetWeights() =>
+      _db.recommendationDao.deleteByType(PreferenceType.scoreWeight);
+
   static PreferenceType? _opposite(PreferenceType type) => switch (type) {
     PreferenceType.preferredColour => PreferenceType.excludedColour,
     PreferenceType.excludedColour => PreferenceType.preferredColour,
     PreferenceType.preferredStyle => PreferenceType.excludedStyle,
     PreferenceType.excludedStyle => PreferenceType.preferredStyle,
-    PreferenceType.preferredFormality => null,
+    PreferenceType.preferredFormality || PreferenceType.scoreWeight => null,
   };
 
   /// Turns a preference on or off. Preferring and avoiding the same colour

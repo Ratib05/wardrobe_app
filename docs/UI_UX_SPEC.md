@@ -47,15 +47,16 @@ Implemented. Slots, a picker and a live check, on one screen.
 - **Details:** name, occasion dropdown (also used by the check), Favourite, Save. Save is enabled only when the outfit is complete for a template (top + bottom + shoes, or dress + shoes; outerwear and accessories optional). Season, rating and notes are not shown in the builder but are kept when an existing outfit is edited.
 - **Layout:** two columns at 1000 px and wider (slots, check and details on the left; picker on the right); one column below that.
 
-## 7. Recommendations
+## 7. Recommendations (Suggestions)
 
-Each recommendation should show:
-- The clothing items included.
-- Overall score or ranking where useful.
-- A short explanation.
-- Actions to save, favourite, rate, or dismiss.
+Implemented.
 
-Do not display false precision. A score is a ranking aid, not an objective measure of fashion quality.
+- **Header:** "Suggested outfits", with "Ranked from N valid combinations" (the engine's total before the top 20 are cut).
+- **Filters:** Occasion, Season, Formality and Must include (an item that every suggestion must contain), plus a "Show suggestions" button. Changes are applied only when the button is pressed. The formality filter keeps items of that formality and items with no formality recorded.
+- **Card:** rank (#1), a generated title such as "Crisp and neutral" (from average formality and the colours), thumbnails with category captions, the score as "90 / 100" with the match label, and "Not for me" and "Save outfit" buttons. There is no wear tracking.
+- **Why this outfit** (expandable): seven factor bars with points out of each factor's maximum (for example 23/25, 13/20), the plain-language reasons, and Favourite and Rate.
+- **Footer:** "Scores use fixed rules and weights — no data leaves this device. Adjust weights in Settings › Recommendations."
+- A score is a ranking aid, not an objective measure of fashion quality.
 
 ## 8. Wishlist and Wardrobe Gaps
 
@@ -70,14 +71,12 @@ Allow suggestions to be dismissed or added to the wishlist.
 
 ## 9. Settings
 
-Include:
-- Backup Wardrobe.
-- Restore Wardrobe.
-- Storage or backup status where useful.
-- App version.
-- Data-management options.
+Implemented as a small page reached from the sidebar. Backup and restore have their own page.
 
-Clearly explain that restoration may replace current wardrobe data.
+- **Score weights:** one slider per scoring factor. Values are relative; the shares shown next to the sliders are rescaled to add up to 100. "Save weights" stores them, "Reset to defaults" restores 25/20/15/15/10/10/5. They apply to Suggestions, the Outfit check in the builder, and the shoe ranking.
+- Recommendation preferences (liked and avoided colours and styles).
+- Reset dismissed recommendations.
+- App version.
 
 ## 10. Empty and Error States
 

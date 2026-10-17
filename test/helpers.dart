@@ -135,7 +135,9 @@ Future<void> pumpApp(
         }),
         // Direct call: isolates don't complete inside fake-async.
         gapRunnerProvider.overrideWithValue((r) async => analyseGaps(r)),
-        recommendRunnerProvider.overrideWithValue((r) async => recommend(r)),
+        recommendRunnerProvider.overrideWithValue(
+          (r) async => recommendWithTotal(r),
+        ),
         if (pickers != null) platformPickersProvider.overrideWithValue(pickers),
         ...overrides,
       ],
@@ -180,6 +182,18 @@ Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
     await tester.pump(const Duration(milliseconds: 50));
   }
   fail('Timed out waiting for $finder');
+}
+
+/// Pumps until [done] returns true.
+Future<void> pumpUntil(WidgetTester tester, bool Function() done) async {
+  for (var i = 0; i < 250; i++) {
+    if (done()) return;
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+  fail('Timed out waiting for condition');
 }
 
 /// Pumps until [finder] no longer matches.

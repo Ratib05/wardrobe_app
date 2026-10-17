@@ -164,4 +164,7 @@ enum PreferenceType {
   preferredFormality,
   excludedColour,
   excludedStyle,
+
+  /// Stored value is a ScoreFactor name; the strength is in `weight`.
+  scoreWeight,
 }

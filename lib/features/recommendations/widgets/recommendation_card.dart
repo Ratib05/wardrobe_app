@@ -1,13 +1,27 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme.dart';
 import '../../../app/widgets/clothing_photo.dart';
 import '../engine/recommendation_engine.dart';
+import '../engine/scoring.dart';
 
-/// One suggested outfit: items, match label, reasons and actions.
+const _factorLabels = {
+  ScoreFactor.colour: 'Colour harmony',
+  ScoreFactor.occasion: 'Occasion',
+  ScoreFactor.formality: 'Formality',
+  ScoreFactor.style: 'Style',
+  ScoreFactor.season: 'Season',
+  ScoreFactor.preferences: 'Your preferences',
+  ScoreFactor.feedback: 'Past feedback',
+};
+
+/// One suggested outfit: rank, title, items, score, an expandable
+/// "Why this outfit" section and the actions.
 class RecommendationCard extends StatelessWidget {
   const RecommendationCard({
     super.key,
     required this.recommendation,
+    required this.rank,
     required this.saved,
     required this.onSave,
     required this.onFavourite,
@@ -16,6 +30,7 @@ class RecommendationCard extends StatelessWidget {
   });
 
   final Recommendation recommendation;
+  final int rank;
 
   /// Already saved as an outfit.
   final bool saved;
@@ -26,83 +41,182 @@ class RecommendationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final rec = recommendation;
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final item in recommendation.items)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('#$rank', style: monoCaption(context)),
+                      Text(
+                        rec.title,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${rec.points} / 100',
+                      key: const Key('score'),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(rec.label.label, style: monoCaption(context)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final item in rec.items)
                   SizedBox(
-                    width: 80,
+                    width: 96,
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: ClothingPhoto(item, size: 80),
+                          borderRadius: BorderRadius.circular(10),
+                          child: ClothingPhoto(item, size: 96),
                         ),
+                        const SizedBox(height: 4),
                         Text(
                           item.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelSmall,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          item.category.label.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: monoCaption(context),
                         ),
                       ],
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 8),
-            Chip(
-              label: Text(recommendation.label.label),
-              visualDensity: VisualDensity.compact,
-            ),
-            for (final reason in recommendation.reasons)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('• '),
-                    Expanded(child: Text(reason, key: const Key('reason'))),
-                  ],
+            Theme(
+              data: Theme.of(
+                context,
+              ).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                key: Key('why-${rec.fingerprint}'),
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(bottom: 8),
+                title: const Text(
+                  'Why this outfit',
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
-              ),
-            const SizedBox(height: 4),
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                TextButton.icon(
-                  onPressed: saved ? null : onSave,
-                  icon: Icon(saved ? Icons.check : Icons.bookmark_add_outlined),
-                  label: Text(saved ? 'Saved' : 'Save'),
-                ),
-                IconButton(
-                  tooltip: 'Favourite',
-                  icon: const Icon(Icons.favorite_border),
-                  onPressed: saved ? null : onFavourite,
-                ),
-                PopupMenuButton<int>(
-                  tooltip: 'Rate',
-                  icon: const Icon(Icons.star_border),
-                  onSelected: onRate,
-                  itemBuilder: (_) => [
-                    for (var n = 1; n <= 5; n++)
-                      PopupMenuItem(
-                        value: n,
-                        child: Text('$n star${n == 1 ? '' : 's'}'),
+                children: [
+                  for (final f in ScoreFactor.values)
+                    _FactorBar(
+                      label: _factorLabels[f]!,
+                      points: rec.factorPoints(f),
+                      max: rec.maxPoints(f),
+                      value: rec.factors[f]!.value,
+                    ),
+                  const SizedBox(height: 8),
+                  for (final reason in rec.reasons)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('• '),
+                          Expanded(
+                            child: Text(reason, key: const Key('reason')),
+                          ),
+                        ],
                       ),
-                  ],
-                ),
-                IconButton(
-                  tooltip: 'Dismiss',
-                  icon: const Icon(Icons.close),
+                    ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton.icon(
+                          onPressed: saved ? null : onFavourite,
+                          icon: const Icon(Icons.favorite_border, size: 18),
+                          label: const Text('Favourite'),
+                        ),
+                        PopupMenuButton<int>(
+                          tooltip: 'Rate',
+                          onSelected: onRate,
+                          itemBuilder: (_) => [
+                            for (var n = 1; n <= 5; n++)
+                              PopupMenuItem(
+                                value: n,
+                                child: Text('$n star${n == 1 ? '' : 's'}'),
+                              ),
+                          ],
+                          child: const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.star_border,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Rate',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              children: [
+                OutlinedButton(
+                  key: const Key('not-for-me'),
                   onPressed: onDismiss,
+                  child: const Text('Not for me'),
+                ),
+                const SizedBox(width: 12),
+                FilledButton.icon(
+                  key: const Key('save-outfit'),
+                  onPressed: saved ? null : onSave,
+                  icon: Icon(
+                    saved ? Icons.check : Icons.bookmark_add_outlined,
+                    size: 18,
+                  ),
+                  label: Text(saved ? 'Saved' : 'Save outfit'),
                 ),
               ],
             ),
@@ -111,4 +225,47 @@ class RecommendationCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _FactorBar extends StatelessWidget {
+  const _FactorBar({
+    required this.label,
+    required this.points,
+    required this.max,
+    required this.value,
+  });
+
+  final String label;
+  final int points;
+  final int max;
+  final double value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      children: [
+        SizedBox(width: 130, child: Text(label)),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: value,
+              minHeight: 8,
+              backgroundColor: AppColors.placeholder,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 56,
+          child: Text(
+            '$points/$max',
+            textAlign: TextAlign.right,
+            style: monoCaption(context),
+          ),
+        ),
+      ],
+    ),
+  );
 }

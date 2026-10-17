@@ -24,6 +24,10 @@ class RecommendationDao extends DatabaseAccessor<AppDatabase>
           ))
           .go();
 
+  Future<int> deleteByType(PreferenceType type) => (delete(
+    userPreferences,
+  )..where((t) => t.preferenceType.equalsValue(type))).go();
+
   /// Oldest first (insertion order breaks timestamp ties).
   Future<List<FeedbackEntry>> allFeedback() =>
       (select(recommendationFeedback)..orderBy([
