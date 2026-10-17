@@ -1,59 +1,111 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wardrobe_app/core/wardrobe_values.dart';
+import 'package:wardrobe_app/features/wardrobe/wardrobe_providers.dart';
 
 import '../../helpers.dart';
 
-Future<void> openWardrobe(WidgetTester tester) async {
-  await tester.tap(find.byKey(const Key('nav-Wardrobe')));
-  await tester.pumpAndSettle();
-}
-
 void main() {
+  final wardrobe = [
+    item(
+      id: 't1',
+      name: 'White oxford shirt',
+      category: ClothingCategory.top,
+      primaryColour: WardrobeColour.white,
+      formality: Formality.smartCasual,
+    ),
+    item(
+      id: 't2',
+      name: 'Navy crewneck tee',
+      category: ClothingCategory.top,
+      primaryColour: WardrobeColour.navy,
+      formality: Formality.casual,
+    ),
+    item(
+      id: 'b1',
+      name: 'Indigo jeans',
+      category: ClothingCategory.bottom,
+      primaryColour: WardrobeColour.navy,
+    ),
+    item(id: 's1', name: 'White sneakers', category: ClothingCategory.footwear),
+  ];
+
   testApp('empty wardrobe shows empty state', (tester, paths) async {
     await pumpApp(tester, paths: paths);
-    await openWardrobe(tester);
     expect(find.text('Your wardrobe is empty'), findsOneWidget);
     expect(find.text('Add your first item'), findsOneWidget);
+    expect(find.text('0 ITEMS · 0 OUTFITS'), findsOneWidget);
   });
 
-  testApp('search narrows the list', (tester, paths) async {
-    await pumpApp(
-      tester,
-      paths: paths,
-      items: [
-        item(name: 'Blue shirt'),
-        item(name: 'Jeans'),
-      ],
+  testApp('header counts items and outfits', (tester, paths) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    expect(find.text('Your wardrobe'), findsOneWidget);
+    expect(find.text('4 ITEMS · 0 OUTFITS'), findsOneWidget);
+    expect(find.text('TOPS · SMART CASUAL'), findsOneWidget);
+  });
+
+  testApp('category chips show counts and filter one category', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    expect(
+      find.descendant(
+        of: find.widgetWithText(FilterChip, 'Tops'),
+        matching: find.text('2'),
+      ),
+      findsOneWidget,
     );
-    await openWardrobe(tester);
-    expect(find.text('Jeans'), findsWidgets);
-    await tester.enterText(find.byType(TextField), 'shirt');
+    expect(
+      find.descendant(
+        of: find.widgetWithText(FilterChip, 'Accessories'),
+        matching: find.text('0'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.widgetWithText(FilterChip, 'Tops'));
     await tester.pumpAndSettle();
-    expect(find.text('Blue shirt'), findsOneWidget);
-    expect(find.text('Jeans'), findsNothing);
+    expect(find.text('White oxford shirt'), findsOneWidget);
+    expect(find.text('Indigo jeans'), findsNothing);
+    await tester.tap(find.widgetWithText(FilterChip, 'All'));
+    await tester.pumpAndSettle();
+    expect(find.text('Indigo jeans'), findsOneWidget);
+  });
+
+  testApp('colour swatches filter by colour', (tester, paths) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    await tester.tap(find.byKey(const Key('swatch-navy')));
+    await tester.pumpAndSettle();
+    expect(find.text('Navy crewneck tee'), findsOneWidget);
+    expect(find.text('Indigo jeans'), findsOneWidget);
+    expect(find.text('White oxford shirt'), findsNothing);
+  });
+
+  testApp('search narrows the list by name or colour', (tester, paths) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    await tester.enterText(find.byType(TextField), 'oxford');
+    await tester.pumpAndSettle();
+    expect(find.text('White oxford shirt'), findsOneWidget);
+    expect(find.text('Navy crewneck tee'), findsNothing);
+    await tester.enterText(find.byType(TextField), 'navy');
+    await tester.pumpAndSettle();
+    expect(find.text('Navy crewneck tee'), findsOneWidget);
+    expect(find.text('Indigo jeans'), findsOneWidget);
+    expect(find.text('White oxford shirt'), findsNothing);
   });
 
   testApp('filters with no match show message and can be cleared', (
     tester,
     paths,
   ) async {
-    await pumpApp(
-      tester,
-      paths: paths,
-      items: [
-        item(name: 'Blue shirt'),
-        item(name: 'Jeans'),
-      ],
-    );
-    await openWardrobe(tester);
+    await pumpApp(tester, paths: paths, items: wardrobe);
     await tester.enterText(find.byType(TextField), 'zzz');
     await tester.pumpAndSettle();
     expect(find.text('No items match these filters'), findsOneWidget);
     await tester.tap(find.text('Clear filters'));
     await tester.pumpAndSettle();
-    expect(find.text('Blue shirt'), findsOneWidget);
-    expect(find.text('Jeans'), findsOneWidget);
+    expect(find.text('White oxford shirt'), findsOneWidget);
+    expect(find.text('Indigo jeans'), findsOneWidget);
   });
 
   testApp('missing photo file shows a placeholder, not an exception', (
@@ -65,8 +117,16 @@ void main() {
       paths: paths,
       items: [item(name: 'Ghost', imagePath: 'images/clothing/gone.jpg')],
     );
-    await openWardrobe(tester);
     expect(find.text('Photo missing'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testApp('items without a photo get a garment silhouette', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    expect(find.text('Photo missing'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -82,10 +142,10 @@ void main() {
         item(name: 'Old coat', isArchived: true),
       ],
     );
-    await openWardrobe(tester);
     expect(find.text('Old coat'), findsNothing);
     await tester.tap(find.byTooltip('Archived items'));
     await tester.pumpAndSettle();
+    expect(find.text('Archived items'), findsWidgets);
     expect(find.text('Old coat'), findsOneWidget);
     expect(find.text('Active'), findsNothing);
   });
@@ -97,9 +157,38 @@ void main() {
       items: [item(name: 'Newest tee')],
     );
     expect(find.text('Newest tee'), findsOneWidget);
-    await openWardrobe(tester);
     await tester.tap(find.byTooltip('List view'));
     await tester.pumpAndSettle();
     expect(find.byType(ListTile), findsOneWidget);
   });
+
+  testApp('the sort dropdown reorders the grid', (tester, paths) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    final container = containerOf(tester);
+    expect(
+      container.read(filteredWardrobeProvider(false)).value!.first.id,
+      's1', // newest first
+    );
+    await tester.tap(find.text('Recently added'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Name').last);
+    await tester.pumpAndSettle();
+    expect(
+      container.read(filteredWardrobeProvider(false)).value!.first.name,
+      'Indigo jeans',
+    );
+  });
+
+  testApp(
+    'narrow layout shows a filter button, search and an add button',
+    (tester, paths) async {
+      await pumpApp(tester, paths: paths, items: wardrobe);
+      expect(find.byTooltip('Filters'), findsOneWidget);
+      expect(find.byTooltip('Add item'), findsOneWidget);
+      expect(find.text('Search your wardrobe'), findsOneWidget);
+      expect(find.byKey(const Key('add-item')), findsNothing);
+      expect(find.text('White oxford shirt'), findsOneWidget);
+    },
+    size: const Size(420, 800),
+  );
 }

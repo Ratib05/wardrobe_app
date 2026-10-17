@@ -6,14 +6,33 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../app/providers.dart';
+import '../../app/theme.dart';
 import '../../app/widgets/clothing_photo.dart';
 import '../../app/widgets/enum_chips.dart';
+import '../../app/widgets/garment_silhouette.dart';
+import '../../app/widgets/page_header.dart';
 import '../../core/app_exceptions.dart';
 import '../../core/clothing_item.dart';
 import '../../core/wardrobe_values.dart';
 import '../../services/image_storage.dart';
 import '../wishlist/wishlist_providers.dart';
+import 'item_stats_provider.dart';
 import 'wardrobe_providers.dart';
+
+const _months = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 /// Add a new item, or edit the item with [itemId].
 class ClothingFormScreen extends ConsumerStatefulWidget {
@@ -44,8 +63,9 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
   bool _saving = false;
 
   ClothingCategory? _category;
-  WardrobeColour? _primary;
-  Set<WardrobeColour> _secondary = {};
+
+  /// Colours in order; the first is the item's main colour.
+  List<WardrobeColour> _colours = [];
   ClothingPattern? _pattern;
   ClothingFit? _fit;
   Set<StyleTag> _styles = {};
@@ -84,7 +104,9 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
       _name.text = w.name;
       _subcategory.text = w.subcategory ?? '';
       _category = w.category;
-      if (w.preferredColours.length == 1) _primary = w.preferredColours.first;
+      if (w.preferredColours.length == 1) {
+        _colours = [w.preferredColours.first];
+      }
       _styles = {...w.styleTags};
       _formality = w.formality;
     });
@@ -120,8 +142,11 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
       _material.text = item.material ?? '';
       _notes.text = item.notes ?? '';
       _category = item.category;
-      _primary = item.primaryColour;
-      _secondary = {...item.secondaryColours};
+      _colours = [
+        ?item.primaryColour,
+        ...(item.secondaryColours.toList()
+          ..sort((a, b) => a.index.compareTo(b.index))),
+      ];
       _pattern = item.pattern;
       _fit = item.fit;
       _styles = {...item.styleTags};
@@ -156,20 +181,40 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
     if (path == null) return;
     try {
       final staged = await _images.stage(path);
-      final old = _staged;
-      if (!mounted) {
-        await _images.discard(staged);
-        return;
-      }
-      setState(() {
-        _staged = staged;
-        _removePhoto = false;
-      });
-      if (old != null) await _images.discard(old);
+      await _replaceStaged(staged);
     } on UnsupportedImageException catch (e) {
       if (mounted) _snack(e.message);
     } catch (e) {
       if (mounted) _snack('Could not read that image: $e');
+    }
+  }
+
+  Future<void> _replaceStaged(File staged) async {
+    final old = _staged;
+    if (!mounted) {
+      await _images.discard(staged);
+      return;
+    }
+    setState(() {
+      _staged = staged;
+      _removePhoto = false;
+    });
+    if (old != null) await _images.discard(old);
+  }
+
+  /// Turns the current photo 90 degrees clockwise (as a new staged file).
+  Future<void> _rotatePhoto() async {
+    final existing = _existing;
+    final File? source =
+        _staged ??
+        (existing?.imagePath != null && !_removePhoto
+            ? _images.fileFor(existing!.imagePath)
+            : null);
+    if (source == null || !source.existsSync()) return;
+    try {
+      await _replaceStaged(await _images.stageRotatedCopy(source));
+    } catch (e) {
+      if (mounted) _snack('Could not rotate that image: $e');
     }
   }
 
@@ -189,8 +234,8 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
       name: _name.text,
       category: _category!,
       subcategory: _text(_subcategory),
-      primaryColour: _primary,
-      secondaryColours: _secondary,
+      primaryColour: _colours.firstOrNull,
+      secondaryColours: _colours.skip(1).toSet(),
       pattern: _pattern,
       material: _text(_material),
       fit: _fit,
@@ -252,10 +297,7 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
     final choice = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        content: Text(
-          "Delete '${item.name}'? $usage"
-          "This can't be undone.",
-        ),
+        content: Text("Delete '${item.name}'? $usage This can't be undone."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 'cancel'),
@@ -282,16 +324,33 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
     }
   }
 
-  Widget _section(String title, Widget child) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 6),
-        child,
-      ],
-    ),
+  // ----------------------------------------------------------------- pieces
+
+  Widget _labeled(String label, Widget child, {String? hint}) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 6,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.text,
+            ),
+          ),
+          if (hint != null)
+            Text(
+              hint,
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
+        ],
+      ),
+      const SizedBox(height: 6),
+      child,
+    ],
   );
 
   Widget _single<T extends Enum>(
@@ -318,246 +377,690 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
   );
 
   Widget _textField(
-    String label,
     TextEditingController c, {
-    int? maxLines = 1,
-  }) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: TextField(
-      controller: c,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
+    Key? fieldKey,
+    String? hint,
+    String? error,
+    int maxLines = 1,
+  }) => TextField(
+    key: fieldKey,
+    controller: c,
+    maxLines: maxLines,
+    decoration: InputDecoration(hintText: hint, errorText: error),
+  );
+
+  Widget _categoryDropdown() => DropdownButtonFormField<ClothingCategory>(
+    key: ValueKey(_category),
+    initialValue: _category,
+    isExpanded: true,
+    hint: const Text('Choose a category'),
+    decoration: InputDecoration(errorText: _categoryError),
+    items: [
+      for (final c in ClothingCategory.values)
+        DropdownMenuItem(value: c, child: Text(c.label)),
+    ],
+    onChanged: (c) => setState(() {
+      _category = c;
+      _categoryError = null;
+    }),
+  );
+
+  Widget _colourSection() => _labeled(
+    'Colours',
+    hint: '· first is the main colour',
+    Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (var i = 0; i < _colours.length; i++)
+          _ColourChip(
+            colour: _colours[i],
+            isMain: i == 0,
+            onMakeMain: () => setState(() {
+              final c = _colours.removeAt(i);
+              _colours.insert(0, c);
+            }),
+            onRemove: () => setState(() => _colours.removeAt(i)),
+          ),
+        _AddColour(
+          available: [
+            for (final c in WardrobeColour.values)
+              if (!_colours.contains(c)) c,
+          ],
+          onAdd: (c) => setState(() => _colours.add(c)),
+        ),
+      ],
     ),
   );
 
-  Widget _photo() {
-    final existing = _existing;
-    final hasPhoto =
-        _staged != null || (existing?.imagePath != null && !_removePhoto);
-    Widget preview;
-    if (_staged != null) {
-      preview = Image.file(
-        _staged!,
-        key: const Key('staged-photo'),
-        fit: BoxFit.cover,
-        cacheWidth: 400,
-      );
-    } else if (existing != null && !_removePhoto) {
-      preview = ClothingPhoto(existing);
-    } else {
-      preview = ColoredBox(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        child: const Icon(Icons.add_a_photo_outlined),
-      );
-    }
-    return Row(
+  Widget _moreDetails() => Theme(
+    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+    child: ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: const EdgeInsets.only(bottom: 8),
+      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+      title: const Text(
+        'More details',
+        style: TextStyle(fontWeight: FontWeight.w600),
+      ),
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: SizedBox(width: 120, height: 120, child: preview),
+        _labeled(
+          'Pattern',
+          _single<ClothingPattern>(
+            ClothingPattern.values,
+            _pattern,
+            (v) => _pattern = v,
+          ),
         ),
-        const SizedBox(width: 16),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        const SizedBox(height: 14),
+        _labeled(
+          'Fit',
+          _single<ClothingFit>(ClothingFit.values, _fit, (v) => _fit = v),
+        ),
+        const SizedBox(height: 14),
+        Row(
           children: [
-            OutlinedButton.icon(
-              onPressed: _pickPhoto,
-              icon: const Icon(Icons.photo_library_outlined),
-              label: Text(hasPhoto ? 'Replace photo' : 'Choose photo'),
-            ),
-            if (hasPhoto)
-              TextButton(
-                onPressed: () async {
-                  final old = _staged;
-                  setState(() {
-                    _staged = null;
-                    _removePhoto = true;
-                  });
-                  if (old != null) await _images.discard(old);
-                },
-                child: const Text('Remove photo'),
-              ),
+            Expanded(child: _labeled('Material', _textField(_material))),
+            const SizedBox(width: 16),
+            Expanded(child: _labeled('Size', _textField(_size))),
           ],
         ),
+        const SizedBox(height: 14),
+        _labeled(
+          'Condition',
+          EnumChips<ItemCondition>(
+            values: ItemCondition.values,
+            label: (v) => v.label,
+            selected: {_condition},
+            single: true,
+            onChanged: (s) =>
+                setState(() => _condition = s.isEmpty ? _condition : s.first),
+          ),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Favourite'),
+          value: _favourite,
+          onChanged: (v) => setState(() => _favourite = v),
+        ),
+      ],
+    ),
+  );
+
+  Widget _formFields(bool compact) {
+    Widget pair(Widget a, Widget b) => compact
+        ? Column(children: [a, const SizedBox(height: 14), b])
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: a),
+              const SizedBox(width: 16),
+              Expanded(child: b),
+            ],
+          );
+    const gap = SizedBox(height: 18);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        pair(
+          _labeled(
+            'Name',
+            _textField(
+              _name,
+              fieldKey: const Key('name-field'),
+              error: _nameError,
+            ),
+          ),
+          _labeled('Category', _categoryDropdown()),
+        ),
+        gap,
+        pair(
+          _labeled('Type', _textField(_subcategory)),
+          _labeled(
+            'Brand',
+            hint: 'Optional',
+            _textField(
+              _brand,
+              fieldKey: const Key('brand-field'),
+              hint: 'e.g. Uniqlo',
+            ),
+          ),
+        ),
+        gap,
+        _colourSection(),
+        gap,
+        _labeled(
+          'Formality',
+          _Segmented<Formality>(
+            values: Formality.values,
+            label: (f) => f.label,
+            selected: _formality,
+            onChanged: (f) => setState(() => _formality = f),
+          ),
+        ),
+        gap,
+        _labeled(
+          'Style',
+          _multi<StyleTag>(StyleTag.values, _styles, (v) => _styles = v),
+        ),
+        gap,
+        _labeled(
+          'Seasons',
+          _multi<Season>(Season.values, _seasons, (v) => _seasons = v),
+        ),
+        gap,
+        _labeled(
+          'Occasions',
+          _multi<Occasion>(Occasion.values, _occasions, (v) => _occasions = v),
+        ),
+        gap,
+        _labeled('Notes', _textField(_notes, maxLines: 3)),
+        const SizedBox(height: 8),
+        _moreDetails(),
+        const Divider(height: 24),
+        _footerActions(compact),
       ],
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _footerActions(bool compact) {
     final existing = _existing;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_editing ? 'Edit item' : 'Add item'),
-        actions: [
-          if (existing != null) ...[
-            IconButton(
-              tooltip: existing.isArchived ? 'Unarchive' : 'Archive',
-              icon: Icon(
-                existing.isArchived
-                    ? Icons.unarchive_outlined
-                    : Icons.archive_outlined,
-              ),
-              onPressed: _toggleArchive,
-            ),
-            IconButton(
-              tooltip: 'Delete',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _delete,
-            ),
-          ],
-          TextButton(
-            onPressed: _saving ? null : _save,
-            child: const Text('Save'),
+    final hide = CheckboxListTile(
+      contentPadding: EdgeInsets.zero,
+      controlAffinity: ListTileControlAffinity.leading,
+      title: const Text('Hide from suggestions (in repair, stored away)'),
+      value: _hidden,
+      onChanged: (v) => setState(() => _hidden = v ?? false),
+    );
+    if (existing == null) return hide;
+    final archive = OutlinedButton(
+      key: const Key('archive-item'),
+      onPressed: _toggleArchive,
+      child: Text(existing.isArchived ? 'Unarchive' : 'Archive'),
+    );
+    final delete = OutlinedButton(
+      key: const Key('delete-item'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.danger,
+        side: const BorderSide(color: Color(0xFFE7C5C2)),
+      ),
+      onPressed: _delete,
+      child: const Text('Delete item'),
+    );
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          hide,
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: archive),
+              const SizedBox(width: 8),
+              Expanded(child: delete),
+            ],
           ),
         ],
+      );
+    }
+    return Row(
+      children: [
+        Expanded(child: hide),
+        archive,
+        const SizedBox(width: 8),
+        delete,
+      ],
+    );
+  }
+
+  Widget _photoPreview() {
+    final existing = _existing;
+    if (_staged != null) {
+      return Image.file(
+        _staged!,
+        key: const Key('staged-photo'),
+        fit: BoxFit.cover,
+        cacheWidth: 600,
+      );
+    }
+    if (existing != null && !_removePhoto) return ClothingPhoto(existing);
+    return ColoredBox(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: _category == null
+          ? const Center(child: Icon(Icons.add_a_photo_outlined))
+          : GarmentSilhouette(
+              category: _category!,
+              colour: _colours.firstOrNull,
+            ),
+    );
+  }
+
+  bool get _hasPhoto =>
+      _staged != null || (_existing?.imagePath != null && !_removePhoto);
+
+  Widget _photoButtons() => Row(
+    children: [
+      Expanded(
+        child: OutlinedButton(
+          key: const Key('replace-photo'),
+          onPressed: _pickPhoto,
+          child: Text(_hasPhoto ? 'Replace photo' : 'Choose photo'),
+        ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _notFound
-          ? const Center(child: Text('Item not found'))
-          : Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
+      const SizedBox(width: 8),
+      IconButton.outlined(
+        key: const Key('rotate-photo'),
+        tooltip: 'Rotate 90°',
+        icon: const Icon(Icons.rotate_right),
+        onPressed: _hasPhoto ? _rotatePhoto : null,
+      ),
+    ],
+  );
+
+  String get _photoNote {
+    const tail = 'resized to 1600px · location metadata removed';
+    if (_staged != null) return 'Will be saved locally as a JPEG · $tail';
+    final path = _existing?.imagePath;
+    if (path != null && !_removePhoto) return 'Saved locally as $path · $tail';
+    return 'Photos stay on this device.';
+  }
+
+  Widget _stats() {
+    final id = _existing?.id;
+    if (id == null) return const SizedBox.shrink();
+    final stats = ref.watch(itemStatsProvider(id));
+    Widget tile(String value, String label) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
+          ],
+        ),
+      ),
+    );
+    return Row(
+      children: [
+        tile('${stats.value?.savedOutfits ?? '–'}', 'saved outfits'),
+        const SizedBox(width: 8),
+        tile('${stats.value?.validCombos ?? '–'}', 'valid combos'),
+      ],
+    );
+  }
+
+  Widget _leftPanel() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      AspectRatio(
+        aspectRatio: 0.9,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: _photoPreview(),
+        ),
+      ),
+      const SizedBox(height: 10),
+      _photoButtons(),
+      if (_hasPhoto)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: () async {
+              final old = _staged;
+              setState(() {
+                _staged = null;
+                _removePhoto = true;
+              });
+              if (old != null) await _images.discard(old);
+            },
+            child: const Text('Remove photo'),
+          ),
+        ),
+      const SizedBox(height: 8),
+      Text(_photoNote, style: monoCaption(context).copyWith(fontSize: 10)),
+      const SizedBox(height: 14),
+      _stats(),
+    ],
+  );
+
+  // A Material (not a decorated Container) so the list tiles inside can
+  // paint their ink on it.
+  Widget _formCard(bool compact) => Material(
+    color: Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+      side: const BorderSide(color: AppColors.border),
+    ),
+    child: Padding(
+      padding: EdgeInsets.all(compact ? 16 : 24),
+      child: _formFields(compact),
+    ),
+  );
+
+  String get _saveLabel => _editing ? 'Save changes' : 'Save item';
+
+  Widget _saveButtons() => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      OutlinedButton(
+        key: const Key('cancel-item'),
+        onPressed: _close,
+        child: const Text('Cancel'),
+      ),
+      const SizedBox(width: 8),
+      FilledButton(
+        key: const Key('save-item'),
+        onPressed: _saving ? null : _save,
+        child: Text(_saveLabel),
+      ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_notFound) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('Item not found')),
+      );
+    }
+    final existing = _existing;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 760;
+        if (compact) {
+          return Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                key: const Key('back'),
+                icon: const Icon(Icons.arrow_back),
+                onPressed: _close,
+              ),
+              title: Text(_editing ? 'Edit item' : 'New item'),
+            ),
+            bottomNavigationBar: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
                   children: [
-                    _section('Photo', _photo()),
-                    TextField(
-                      controller: _name,
-                      decoration: InputDecoration(
-                        labelText: 'Name',
-                        errorText: _nameError,
-                        border: const OutlineInputBorder(),
+                    Expanded(
+                      child: OutlinedButton(
+                        key: const Key('cancel-item'),
+                        onPressed: _close,
+                        child: const Text('Cancel'),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    _section(
-                      'Category',
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _single<ClothingCategory>(
-                            ClothingCategory.values,
-                            _category,
-                            (v) => _category = v,
-                          ),
-                          if (_categoryError != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                _categoryError!,
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.error,
-                                ),
-                              ),
-                            ),
-                        ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: FilledButton(
+                        key: const Key('save-item'),
+                        onPressed: _saving ? null : _save,
+                        child: Text(_saveLabel),
                       ),
                     ),
-                    _textField('Subcategory', _subcategory),
-                    _section(
-                      'Primary colour',
-                      _single<WardrobeColour>(
-                        WardrobeColour.values,
-                        _primary,
-                        (v) => _primary = v,
-                      ),
-                    ),
-                    _section(
-                      'Secondary colours',
-                      _multi<WardrobeColour>(
-                        WardrobeColour.values,
-                        _secondary,
-                        (v) => _secondary = v,
-                      ),
-                    ),
-                    _section(
-                      'Pattern',
-                      _single<ClothingPattern>(
-                        ClothingPattern.values,
-                        _pattern,
-                        (v) => _pattern = v,
-                      ),
-                    ),
-                    _section(
-                      'Style',
-                      _multi<StyleTag>(
-                        StyleTag.values,
-                        _styles,
-                        (v) => _styles = v,
-                      ),
-                    ),
-                    _section(
-                      'Formality',
-                      _single<Formality>(
-                        Formality.values,
-                        _formality,
-                        (v) => _formality = v,
-                      ),
-                    ),
-                    _section(
-                      'Seasons',
-                      _multi<Season>(
-                        Season.values,
-                        _seasons,
-                        (v) => _seasons = v,
-                      ),
-                    ),
-                    _section(
-                      'Occasions',
-                      _multi<Occasion>(
-                        Occasion.values,
-                        _occasions,
-                        (v) => _occasions = v,
-                      ),
-                    ),
-                    _textField('Brand', _brand),
-                    _textField('Size', _size),
-                    _textField('Material', _material),
-                    _section(
-                      'Fit',
-                      _single<ClothingFit>(
-                        ClothingFit.values,
-                        _fit,
-                        (v) => _fit = v,
-                      ),
-                    ),
-                    _section(
-                      'Condition',
-                      EnumChips<ItemCondition>(
-                        values: ItemCondition.values,
-                        label: (v) => v.label,
-                        selected: {_condition},
-                        single: true,
-                        onChanged: (s) => setState(
-                          () => _condition = s.isEmpty ? _condition : s.first,
-                        ),
-                      ),
-                    ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'Hide from suggestions (in repair, stored away)',
-                      ),
-                      value: _hidden,
-                      onChanged: (v) => setState(() => _hidden = v),
-                    ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Favourite'),
-                      value: _favourite,
-                      onChanged: (v) => setState(() => _favourite = v),
-                    ),
-                    _textField('Notes', _notes, maxLines: 3),
                   ],
                 ),
               ),
             ),
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AspectRatio(
+                    aspectRatio: 1.1,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: _photoPreview(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _photoButtons(),
+                  const SizedBox(height: 16),
+                  _formCard(true),
+                ],
+              ),
+            ),
+          );
+        }
+        final added = existing == null
+            ? null
+            : '${existing.createdAt.toLocal().day} '
+                  '${_months[existing.createdAt.toLocal().month - 1]} '
+                  '${existing.createdAt.toLocal().year}';
+        return Scaffold(
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // The header (with Save) stays put while the form scrolls.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(32, 24, 32, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextButton.icon(
+                      key: const Key('back'),
+                      onPressed: _close,
+                      icon: const Icon(Icons.chevron_left, size: 20),
+                      label: const Text('Back to wardrobe'),
+                    ),
+                    const SizedBox(height: 8),
+                    PageHeader(
+                      eyebrow: added == null
+                          ? 'New item'
+                          : 'Edit item · added $added',
+                      title: existing?.name ?? 'New item',
+                      trailing: _saveButtons(),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(width: 280, child: _leftPanel()),
+                      const SizedBox(width: 24),
+                      Expanded(child: _formCard(false)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
+}
+
+/// Selected colour: swatch + name. Tap for "Make main colour" / "Remove".
+class _ColourChip extends StatelessWidget {
+  const _ColourChip({
+    required this.colour,
+    required this.isMain,
+    required this.onMakeMain,
+    required this.onRemove,
+  });
+
+  final WardrobeColour colour;
+  final bool isMain;
+  final VoidCallback onMakeMain;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) => PopupMenuButton<String>(
+    key: Key('colour-${colour.name}'),
+    tooltip: colour.label,
+    onSelected: (v) => v == 'main' ? onMakeMain() : onRemove(),
+    itemBuilder: (_) => [
+      if (!isMain)
+        const PopupMenuItem(value: 'main', child: Text('Make main colour')),
+      const PopupMenuItem(value: 'remove', child: Text('Remove')),
+    ],
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(6, 5, 14, 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isMain ? AppColors.text : AppColors.border,
+          width: isMain ? 1.5 : 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Swatch(colour),
+          const SizedBox(width: 8),
+          Text(colour.label),
+        ],
+      ),
+    ),
+  );
+}
+
+class _AddColour extends StatelessWidget {
+  const _AddColour({required this.available, required this.onAdd});
+
+  final List<WardrobeColour> available;
+  final ValueChanged<WardrobeColour> onAdd;
+
+  Future<void> _choose(BuildContext context) async {
+    final colour = await showDialog<WardrobeColour>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add a colour'),
+        content: SizedBox(
+          width: 420,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final c in available)
+                ActionChip(
+                  key: Key('pick-colour-${c.name}'),
+                  avatar: _Swatch(c),
+                  label: Text(c.label),
+                  onPressed: () => Navigator.pop(context, c),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+    if (colour != null) onAdd(colour);
+  }
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    key: const Key('add-colour'),
+    borderRadius: BorderRadius.circular(24),
+    onTap: available.isEmpty ? null : () => _choose(context),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.muted.withValues(alpha: 0.5)),
+      ),
+      child: const Text(
+        '+ Add colour',
+        style: TextStyle(color: AppColors.muted),
+      ),
+    ),
+  );
+}
+
+class _Swatch extends StatelessWidget {
+  const _Swatch(this.colour);
+
+  final WardrobeColour colour;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 22,
+    height: 22,
+    decoration: BoxDecoration(
+      color: Color(colour.argb),
+      shape: BoxShape.circle,
+      border: Border.all(color: AppColors.border),
+    ),
+  );
+}
+
+/// A row of connected options; the selected one is dark. Tapping the
+/// selected option clears it.
+class _Segmented<T extends Enum> extends StatelessWidget {
+  const _Segmented({
+    required this.values,
+    required this.label,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final List<T> values;
+  final String Function(T) label;
+  final T? selected;
+  final ValueChanged<T?> onChanged;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(10),
+    child: Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F1EA),
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          for (final v in values)
+            Expanded(
+              child: InkWell(
+                key: Key('segment-${v.name}'),
+                onTap: () => onChanged(selected == v ? null : v),
+                child: Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  color: selected == v ? AppColors.text : Colors.transparent,
+                  child: Text(
+                    label(v),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: selected == v ? Colors.white : AppColors.text,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
 }

@@ -54,19 +54,22 @@ void main() {
     await tester.pumpWidget(appFor(paths, pickers, UniqueKey()));
     await tester.pumpAndSettle();
     await openWardrobe(tester);
-    await tester.tap(find.text('Add item'));
+    await tester.tap(find.byKey(const Key('add-item')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Choose photo'));
+    await tester.tap(find.byKey(const Key('replace-photo')));
     await pumpUntilFound(tester, find.byKey(const Key('staged-photo')));
-    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'White tee');
-    for (final label in ['Top', 'White']) {
-      final chip = find.widgetWithText(FilterChip, label).first;
-      await tester.ensureVisible(chip);
-      await tester.tap(chip);
-      await tester.pump();
-    }
-    await tester.tap(find.widgetWithText(TextButton, 'Save'));
+    await tester.enterText(find.byKey(const Key('name-field')), 'White tee');
+    await tester.tap(find.byType(DropdownButtonFormField<ClothingCategory>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Top').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('add-colour')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pick-colour-white')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('save-item')));
+    await pumpUntilGone(tester, find.byKey(const Key('save-item')));
     await pumpUntilFound(tester, find.text('White tee'));
 
     // "Restart": tear the app down and start a fresh one on the same storage.

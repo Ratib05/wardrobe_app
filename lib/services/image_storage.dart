@@ -36,6 +36,17 @@ Uint8List processImageBytes(Uint8List bytes) {
   return Uint8List.fromList(img.encodeJpg(image, quality: jpegQuality));
 }
 
+/// Rotates an image 90 degrees clockwise and re-encodes it as JPEG.
+/// Top-level so [Isolate.run] can call it.
+Uint8List rotateImageBytes(Uint8List bytes) {
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) {
+    throw const UnsupportedImageException(_unsupportedMessage);
+  }
+  final rotated = img.copyRotate(decoded, angle: 90);
+  return Uint8List.fromList(img.encodeJpg(rotated, quality: jpegQuality));
+}
+
 /// Stores clothing photos as files; the database keeps only the relative path.
 class ImageStorage {
   ImageStorage(this._paths);
@@ -55,6 +66,16 @@ class ImageStorage {
     final processed = await Isolate.run(() => processImageBytes(bytes));
     final staged = File(p.join(_paths.tempDir.path, '${_uuid.v4()}.jpg'));
     await staged.writeAsBytes(processed);
+    return staged;
+  }
+
+  /// Writes a rotated (90 degrees clockwise) copy of [source] to temporary/
+  /// and returns it; [source] is left untouched.
+  Future<File> stageRotatedCopy(File source) async {
+    final bytes = await source.readAsBytes();
+    final rotated = await Isolate.run(() => rotateImageBytes(bytes));
+    final staged = File(p.join(_paths.tempDir.path, '${_uuid.v4()}.jpg'));
+    await staged.writeAsBytes(rotated);
     return staged;
   }
 

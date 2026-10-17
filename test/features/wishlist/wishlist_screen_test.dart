@@ -116,14 +116,18 @@ void main() {
     await tester.tap(find.byTooltip('Actions'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Mark purchased'));
-    await pumpUntilFound(tester, find.text('Add item'));
+    await pumpUntilFound(tester, find.byKey(const Key('save-item')));
     await pumpUntilFound(tester, find.widgetWithText(TextField, 'Boots'));
     await tester.pump(const Duration(milliseconds: 300));
-    final chip = tester.widget<FilterChip>(
-      find.widgetWithText(FilterChip, 'Shoes').first,
+    // Category is prefilled from the wishlist entry.
+    expect(
+      find.descendant(
+        of: find.byType(DropdownButtonFormField<ClothingCategory>),
+        matching: find.text('Shoes'),
+      ),
+      findsOneWidget,
     );
-    expect(chip.selected, isTrue);
-    await tester.tap(find.widgetWithText(TextButton, 'Save'));
+    await tester.tap(find.byKey(const Key('save-item')));
     await pumpUntilFound(tester, find.text('Your wishlist is empty'));
     final db = containerOf(tester).read(appDatabaseProvider);
     final entry = (await tester.runAsync(

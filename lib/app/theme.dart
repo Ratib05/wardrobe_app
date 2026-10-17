@@ -155,6 +155,12 @@ ThemeData buildAppTheme() {
       backgroundColor: AppColors.text,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    ),
     popupMenuTheme: const PopupMenuThemeData(
       color: AppColors.surface,
       surfaceTintColor: Colors.transparent,

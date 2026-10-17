@@ -23,18 +23,18 @@ void main() {
     expect(find.byKey(const Key('sidebar')), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
     // The app opens on the wardrobe.
-    expect(
-      find.descendant(of: find.byType(AppBar), matching: find.text('Wardrobe')),
-      findsOneWidget,
-    );
+    expect(find.text('Your wardrobe'), findsOneWidget);
     for (final MapEntry(key: label, value: title) in sections.entries) {
       await tester.tap(find.byKey(Key('nav-$label')));
       await tester.pumpAndSettle();
-      expect(
-        find.descendant(of: find.byType(AppBar), matching: find.text(title)),
-        findsOneWidget,
-        reason: label,
-      );
+      // Redesigned screens have their own heading instead of an AppBar.
+      final heading = label == 'Wardrobe'
+          ? find.text('Your wardrobe')
+          : find.descendant(
+              of: find.byType(AppBar),
+              matching: find.text(title),
+            );
+      expect(heading, findsOneWidget, reason: label);
     }
   });
 

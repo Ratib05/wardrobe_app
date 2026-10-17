@@ -69,9 +69,18 @@ class WardrobeFilter {
     sort: sort ?? this.sort,
   );
 
+  /// The search box matches the name, brand and colour names.
+  static bool _matchesQuery(ClothingItem i, String q) {
+    bool has(String? text) => text != null && text.toLowerCase().contains(q);
+    return has(i.name) ||
+        has(i.brand) ||
+        has(i.primaryColour?.label) ||
+        i.secondaryColours.any((c) => has(c.label));
+  }
+
   bool _matches(ClothingItem i) {
     final q = query.trim().toLowerCase();
-    if (q.isNotEmpty && !i.name.toLowerCase().contains(q)) return false;
+    if (q.isNotEmpty && !_matchesQuery(i, q)) return false;
     if (favouritesOnly && !i.isFavourite) return false;
     if (categories.isNotEmpty && !categories.contains(i.category)) return false;
     if (colours.isNotEmpty &&

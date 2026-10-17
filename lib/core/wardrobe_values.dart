@@ -2,15 +2,16 @@
 // value's enum `name`; `label` is what the UI shows.
 
 enum ClothingCategory {
-  top('Top'),
-  bottom('Bottom'),
-  onePiece('Dress / jumpsuit'),
-  outerwear('Outerwear'),
-  footwear('Shoes'),
-  accessory('Accessory');
+  top('Top', 'Tops'),
+  bottom('Bottom', 'Bottoms'),
+  onePiece('Dress / jumpsuit', 'Dresses'),
+  outerwear('Outerwear', 'Outerwear'),
+  footwear('Shoes', 'Shoes'),
+  accessory('Accessory', 'Accessories');
 
-  const ClothingCategory(this.label);
+  const ClothingCategory(this.label, this.labelPlural);
   final String label;
+  final String labelPlural;
 }
 
 enum ColourFamily {

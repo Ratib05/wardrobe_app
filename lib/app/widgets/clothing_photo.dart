@@ -2,17 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/clothing_item.dart';
-import '../../core/wardrobe_values.dart';
 import '../providers.dart';
-
-IconData categoryIcon(ClothingCategory category) => switch (category) {
-  ClothingCategory.top => Icons.checkroom,
-  ClothingCategory.bottom => Icons.straighten,
-  ClothingCategory.onePiece => Icons.dry_cleaning,
-  ClothingCategory.outerwear => Icons.ac_unit,
-  ClothingCategory.footwear => Icons.hiking,
-  ClothingCategory.accessory => Icons.watch,
-};
+import 'garment_silhouette.dart';
 
 /// An item's photo. Shows a category icon when there is no photo and a
 /// "Photo missing" placeholder when the file is gone or unreadable.
@@ -42,7 +33,13 @@ class ClothingPhoto extends ConsumerWidget {
 
     Widget child;
     if (item.imagePath == null) {
-      child = placeholder(categoryIcon(item.category));
+      child = ColoredBox(
+        color: scheme.surfaceContainerHighest,
+        child: GarmentSilhouette(
+          category: item.category,
+          colour: item.primaryColour,
+        ),
+      );
     } else {
       final file = ref.watch(imageStorageProvider).fileFor(item.imagePath);
       if (file == null || !file.existsSync()) {

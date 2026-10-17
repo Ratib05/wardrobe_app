@@ -14,6 +14,17 @@ void main() {
     expect(names(const WardrobeFilter(query: ' SHI '), items), ['Blue shirt']);
   });
 
+  test('search also matches brand and colour names', () {
+    final items = [
+      item(name: 'Overshirt', primaryColour: WardrobeColour.olive),
+      item(name: 'Tee', secondaryColours: {WardrobeColour.rust}),
+      item(name: 'Jeans'),
+    ];
+    // item() has no brand argument; brand matching is covered by the form test.
+    expect(names(const WardrobeFilter(query: 'olive'), items), ['Overshirt']);
+    expect(names(const WardrobeFilter(query: 'RUST'), items), ['Tee']);
+  });
+
   test('any within a facet, all across facets', () {
     final items = [
       item(name: 'A', category: ClothingCategory.top, seasons: {Season.winter}),

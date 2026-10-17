@@ -60,4 +60,16 @@ void main() {
     await storage.delete('images/clothing/missing.jpg');
     await storage.delete('../x');
   });
+
+  test('rotating turns the image 90 degrees and keeps the source', () async {
+    final paths = await tempPaths();
+    final storage = ImageStorage(paths);
+    final source = File('${paths.root.path}/wide.jpg')
+      ..writeAsBytesSync(jpegBytes(width: 200, height: 100));
+    final rotated = await storage.stageRotatedCopy(source);
+    final decoded = img.decodeJpg(rotated.readAsBytesSync())!;
+    expect([decoded.width, decoded.height], [100, 200]);
+    expect(source.existsSync(), isTrue);
+    expect(rotated.path, isNot(source.path));
+  });
 }

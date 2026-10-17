@@ -17,28 +17,25 @@ There is no dashboard. The app opens on the Wardrobe. (Superseded by the design 
 
 ## 4. Wardrobe Screen
 
-Provide:
-- Grid and list views.
-- Clothing photos.
-- Search.
-- Category and attribute filters.
-- Sorting.
-- An obvious add-item action.
-- Access to archived items.
+Implemented to match the design mockups.
 
-Each item should have a detail screen for editing attributes and managing its photo.
+- Header: a small monospace line "12 ITEMS · 18 OUTFITS", the title "Your wardrobe", a search box (name, colour and brand) and an "Add item" button.
+- Category pills with counts: All, Tops, Bottoms, Dresses, Outerwear, Shoes, Accessories. One category at a time.
+- Filter row: Season, Occasion and Sort dropdowns, quick colour swatches (white, black, navy, grey, beige, olive, brown), and buttons for more filters (style, formality, favourites, full colour list), grid/list view, and archived items.
+- Item cards: photo (or a garment silhouette tinted with the item's colour when there is no photo), name, and a caption such as "TOPS · SMART CASUAL". Favourite and "hidden from suggestions" markers appear on the photo. A missing photo file shows a "Photo missing" placeholder.
+- Narrow screens (under 640 px wide): the title row has a filters button, the search box is a pill, pills scroll sideways, the grid has two columns and the add button is a floating "+".
+- There are no "worn" counts: wear tracking is not part of the app.
 
 ## 5. Add/Edit Clothing
 
-Use a form with:
-- Name and category.
-- Photo selection.
-- Colour and other visual attributes.
-- Style and formality.
-- Season and occasion.
-- Optional brand, size, material, and notes.
+Implemented to match the design mockups. The header (back link, title, Cancel and Save) stays fixed while the form scrolls.
 
-Optional fields must not create unnecessary barriers to saving an item.
+- Left panel: the photo (or silhouette), "Replace photo" and a rotate button (90 degrees clockwise), a note about where the photo is stored (local, resized to 1600 px, location metadata removed), and two numbers: saved outfits containing the item and valid outfit combinations it can be part of.
+- Form: Name and Category (dropdown), Type and Brand (optional), Colours (ordered; the first is the main colour, chips can be made main or removed, "+ Add colour" opens a swatch picker), Formality (five segments), Style, Seasons and Occasions chips, Notes.
+- "More details" holds pattern, fit, material, size, condition and favourite, so every attribute from the requirements stays available while the main form matches the design.
+- "Hide from suggestions (in repair, stored away)" keeps an item out of outfits and recommendations. Archive and Delete item sit beside it (delete asks for confirmation, offers "Archive instead" and says how many outfits are affected).
+- Only name and category are required.
+- Narrow screens: a single column with Cancel and Save in a bar at the bottom.
 
 ## 6. Outfit Builder
 
