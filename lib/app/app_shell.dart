@@ -86,7 +86,7 @@ class _Sidebar extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Flexible(
                   child: Text(
-                    'Wardrobe',
+                    'Drobe',
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,

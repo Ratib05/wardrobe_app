@@ -9,7 +9,7 @@ class StartupErrorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Wardrobe',
+    title: 'Drobe',
     home: Scaffold(
       body: Center(
         child: ConstrainedBox(
