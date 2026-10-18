@@ -58,16 +58,14 @@ Implemented.
 - **Footer:** "Scores use fixed rules and weights — no data leaves this device. Adjust weights in Settings › Recommendations."
 - A score is a ranking aid, not an objective measure of fashion quality.
 
-## 8. Wishlist and Wardrobe Gaps
+## 8. Gaps & Wishlist
 
-Display potential purchases with:
-- Name or description.
-- Category.
-- Reason for the suggestion.
-- Expected wardrobe benefit.
-- Optional budget and priority.
+Implemented as one page ("Gaps & wishlist" in the sidebar), not separate screens.
 
-Allow suggestions to be dismissed or added to the wishlist.
+- **Ideas:** cards for purchases that would add outfits. Each shows the title (for example "Black casual shoes"), a pill ("Needed" when no complete outfit is possible yet, otherwise "+N new outfits"), the explanation, and a "Pairs with" row of thumbnails of the owned items it would be worn with. "Add to wishlist" stores a planned entry; "Not for me" stores a dismissed one, which hides the idea. Ideas that add fewer than 6 outfits are listed last and get an outlined button instead of a filled one.
+- **Wishlist:** Planned, Purchased and Dismissed filters, then a table: Item (with category), Priority pill, Budget (A$), Unlocks ("+N outfits" the item would make possible, planned entries only) and Note (the reason, else the notes). The row menu keeps Edit, Mark purchased (opens the add-item form prefilled), Mark purchased without adding, Dismiss, Move back to planned and Delete.
+- "Add manually" opens the wishlist form. Empty states: "Add some clothing first", "No suggestions right now — your wardrobe covers your outfit types.", "Your wishlist is empty".
+- Budget does not affect ranking; hypothetical items have no price.
 
 ## 9. Settings
 

@@ -8,8 +8,6 @@ import '../../helpers.dart';
 Future<void> openGaps(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('nav-Gaps & wishlist')));
   await tester.pumpAndSettle();
-  await tester.tap(find.byTooltip('Wardrobe gaps'));
-  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -34,6 +32,7 @@ void main() {
     await openGaps(tester);
     expect(find.text('Beige casual shoes'), findsOneWidget);
     expect(find.text('Needed'), findsWidgets);
+    expect(find.text('PAIRS WITH'), findsWidgets);
     expect(
       find.textContaining('This would make 6 outfits possible'),
       findsWidgets,
@@ -46,10 +45,11 @@ void main() {
   ) async {
     await pumpApp(tester, paths: paths, items: noFootwear);
     await openGaps(tester);
-    await tester.tap(
-      find.widgetWithText(FilledButton, 'Add to wishlist').first,
+    await tester.tap(find.text('Add to wishlist').first);
+    await pumpUntilGone(
+      tester,
+      find.byKey(const Key('gap-footwear:beige:casual')),
     );
-    await pumpUntilGone(tester, find.text('Beige casual shoes'));
     final db = containerOf(tester).read(appDatabaseProvider);
     final row = (await tester.runAsync(
       () => db.select(db.wishlistItems).getSingle(),
@@ -67,7 +67,10 @@ void main() {
     await pumpApp(tester, paths: paths, items: noFootwear);
     await openGaps(tester);
     await tester.tap(find.widgetWithText(TextButton, 'Not for me').first);
-    await pumpUntilGone(tester, find.text('Beige casual shoes'));
+    await pumpUntilGone(
+      tester,
+      find.byKey(const Key('gap-footwear:beige:casual')),
+    );
     final db = containerOf(tester).read(appDatabaseProvider);
     final row = (await tester.runAsync(
       () => db.select(db.wishlistItems).getSingle(),

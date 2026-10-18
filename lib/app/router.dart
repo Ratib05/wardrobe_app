@@ -9,7 +9,6 @@ import '../features/settings/preferences_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/wardrobe/clothing_form_screen.dart';
 import '../features/wardrobe/wardrobe_screen.dart';
-import '../features/wishlist/gap_suggestions_screen.dart';
 import '../features/wishlist/wishlist_form_screen.dart';
 import '../features/wishlist/wishlist_screen.dart';
 import 'app_shell.dart';
@@ -82,10 +81,6 @@ GoRouter createRouter() => GoRouter(
                 GoRoute(
                   path: 'new',
                   builder: (context, state) => const WishlistFormScreen(),
-                ),
-                GoRoute(
-                  path: 'gaps',
-                  builder: (context, state) => const GapSuggestionsScreen(),
                 ),
                 GoRoute(
                   path: ':id',

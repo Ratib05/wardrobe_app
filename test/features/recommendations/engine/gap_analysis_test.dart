@@ -125,4 +125,30 @@ void main() {
     ];
     expect(analyseGaps(GapRequest(items: items)), isEmpty);
   });
+
+  test('suggestions list the owned items they pair with', () {
+    final items = [
+      plain('t', ClothingCategory.top),
+      plain('b', ClothingCategory.bottom),
+    ];
+    final first = analyseGaps(GapRequest(items: items)).first;
+    expect(first.partners.map((p) => p.id).toSet(), {'t', 'b'});
+    expect(first.partnerCount, 2);
+  });
+
+  test('outfitsUnlockedBy counts every valid outfit with the new item', () {
+    final items = [
+      plain('t1', ClothingCategory.top),
+      plain('t2', ClothingCategory.top),
+      plain('b', ClothingCategory.bottom),
+    ];
+    expect(
+      outfitsUnlockedBy(items: items, category: ClothingCategory.footwear),
+      2,
+    );
+    expect(
+      outfitsUnlockedBy(items: items, category: ClothingCategory.onePiece),
+      0,
+    );
+  });
 }

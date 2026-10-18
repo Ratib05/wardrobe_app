@@ -44,7 +44,7 @@ void main() {
   testApp('adding an entry stores the budget in cents', (tester, paths) async {
     await pumpApp(tester, paths: paths);
     await openWishlist(tester);
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byKey(const Key('add-wishlist')));
     await tester.pumpAndSettle();
     final footwear = find.widgetWithText(FilterChip, 'Shoes');
     await tester.ensureVisible(footwear);
@@ -75,7 +75,7 @@ void main() {
   testApp('invalid budget shows an error', (tester, paths) async {
     await pumpApp(tester, paths: paths);
     await openWishlist(tester);
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byKey(const Key('add-wishlist')));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, 'Budget'), 'abc');
     await tester.tap(find.widgetWithText(TextButton, 'Save'));
@@ -98,7 +98,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Dismiss'));
     await pumpUntilFound(tester, find.text('Your wishlist is empty'));
-    await tester.tap(find.widgetWithText(Tab, 'Dismissed'));
+    await tester.tap(find.byKey(const Key('status-dismissed')));
     await tester.pumpAndSettle();
     expect(find.text('Scarf'), findsOneWidget);
   });
@@ -139,5 +139,36 @@ void main() {
     expect(entry.status, WishlistStatus.purchased);
     expect(items.single.id, entry.purchasedItemId);
     expect(items.single.name, 'Boots');
+  });
+
+  testApp('rows show priority, budget, unlocked outfits and note', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(
+      tester,
+      paths: paths,
+      items: [
+        item(id: 't', name: 'Tee', category: ClothingCategory.top),
+        item(id: 'b', name: 'Jeans', category: ClothingCategory.bottom),
+      ],
+      seed: (db) => db.wishlistDao.upsert(
+        WishlistItemsCompanion.insert(
+          id: 'w1',
+          name: 'Boots',
+          category: ClothingCategory.footwear,
+          priority: const Value(WishlistPriority.high),
+          targetPriceCents: const Value(12000),
+          reason: const Value('Winter'),
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      ),
+    );
+    await openWishlist(tester);
+    await pumpUntilFound(tester, find.text('+1 outfit'));
+    expect(find.text('High'), findsOneWidget);
+    expect(find.text('A\$120'), findsOneWidget);
+    expect(find.text('Winter'), findsOneWidget);
   });
 }

@@ -31,6 +31,7 @@ class GapSuggestion {
     required this.partnerCount,
     required this.title,
     required this.explanation,
+    this.partners = const [],
   });
 
   final ClothingCategory category;
@@ -46,6 +47,9 @@ class GapSuggestion {
   final int partnerCount;
   final String title;
   final String explanation;
+
+  /// The owned items it would pair with, most often first.
+  final List<ClothingItem> partners;
 
   String get key => gapKey(category, colour, formality);
 }
@@ -201,21 +205,35 @@ GapSuggestion? _evaluate(
     ),
   );
 
-  int partners(Iterable<Recommendation> recs) => {
-    for (final r in recs)
-      for (final i in r.items)
-        if (i.id != imaginary.id) i.id,
-  }.length;
+  List<ClothingItem> partners(Iterable<Recommendation> recs) {
+    final counts = <String, int>{};
+    final byId = <String, ClothingItem>{};
+    for (final r in recs) {
+      for (final i in r.items) {
+        if (i.id == imaginary.id) continue;
+        counts[i.id] = (counts[i.id] ?? 0) + 1;
+        byId[i.id] = i;
+      }
+    }
+    final ids = counts.keys.toList()
+      ..sort((a, b) {
+        final c = counts[b]!.compareTo(counts[a]!);
+        return c != 0 ? c : a.compareTo(b);
+      });
+    return [for (final id in ids) byId[id]!];
+  }
 
   if (!canMakeOutfits) {
     if (outfits.isEmpty) return null;
+    final neededPartners = partners(outfits);
     return GapSuggestion(
       category: category,
       colour: colour,
       formality: formality,
       kind: GapKind.needed,
       newOutfits: outfits.length,
-      partnerCount: partners(outfits),
+      partnerCount: neededPartners.length,
+      partners: neededPartners,
       title: title,
       explanation:
           "You can't put together a complete outfit yet. This would make "
@@ -228,7 +246,8 @@ GapSuggestion? _evaluate(
       .where((r) => r.label != MatchLabel.possible)
       .toList(growable: false);
   if (good.length < request.minNewOutfits) return null;
-  final partnerCount = partners(good);
+  final goodPartners = partners(good);
+  final partnerCount = goodPartners.length;
   return GapSuggestion(
     category: category,
     colour: colour,
@@ -236,9 +255,38 @@ GapSuggestion? _evaluate(
     kind: GapKind.useful,
     newOutfits: good.length,
     partnerCount: partnerCount,
+    partners: goodPartners,
     title: title,
     explanation:
         'Would pair with $partnerCount of your items, adding '
         '${good.length} good outfits.',
   );
+}
+
+/// How many valid outfits an item you do not own yet would make possible
+/// (every score counts). [colour] and [formality] may be unknown.
+int outfitsUnlockedBy({
+  required List<ClothingItem> items,
+  required ClothingCategory category,
+  WardrobeColour? colour,
+  Formality? formality,
+  RecommendationPreferences preferences = const RecommendationPreferences(),
+}) {
+  final imaginary = ClothingItem(
+    id: 'gap:${gapKey(category, colour, formality)}',
+    name: 'Wishlist item',
+    category: category,
+    primaryColour: colour,
+    formality: formality,
+    createdAt: DateTime.utc(2000),
+    updatedAt: DateTime.utc(2000),
+  );
+  return recommendWithTotal(
+    RecommendationRequest(
+      items: items,
+      preferences: preferences,
+      limit: 0,
+      mustInclude: imaginary,
+    ),
+  ).total;
 }

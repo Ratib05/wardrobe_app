@@ -11,7 +11,7 @@ const sections = {
   'Wardrobe': 'Wardrobe',
   'Outfits': 'Outfits',
   'Suggestions': 'Suggested outfits',
-  'Gaps & wishlist': 'Wishlist',
+  'Gaps & wishlist': 'Gaps & wishlist',
   'Backup': 'Backup',
   'Settings': 'Settings',
 };
@@ -34,7 +34,12 @@ void main() {
           ? find.text('Your wardrobe')
           : find.descendant(
               of: find.byType(
-                ['Outfits', 'Suggestions', 'Settings'].contains(label)
+                [
+                      'Outfits',
+                      'Suggestions',
+                      'Gaps & wishlist',
+                      'Settings',
+                    ].contains(label)
                     ? PageHeader
                     : AppBar,
               ),
