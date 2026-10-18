@@ -299,6 +299,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await openBackup();
+    await tester.ensureVisible(find.text('Back up wardrobe'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Back up wardrobe'));
     await pumpUntilFound(tester, find.text('Backup saved'));
     expect(File(backupZip).existsSync(), isTrue);
@@ -313,6 +315,8 @@ void main() {
     await tester.pumpWidget(appFor(paths2, pickers, UniqueKey()));
     await tester.pumpAndSettle();
     await openBackup();
+    await tester.ensureVisible(find.text('Restore wardrobe'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Restore wardrobe'));
     await pumpUntilFound(tester, find.text('Replace your wardrobe?'));
     await tester.tap(find.widgetWithText(FilledButton, 'Replace'));
@@ -332,6 +336,8 @@ void main() {
     final notABackup = File('${paths2.root.path}${Platform.pathSeparator}x.zip')
       ..writeAsStringSync('not a zip');
     pickers.backupFile = notABackup.path;
+    await tester.ensureVisible(find.text('Restore wardrobe'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Restore wardrobe'));
     await pumpUntilFound(
       tester,

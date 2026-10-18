@@ -12,7 +12,7 @@ const sections = {
   'Outfits': 'Outfits',
   'Suggestions': 'Suggested outfits',
   'Gaps & wishlist': 'Gaps & wishlist',
-  'Backup': 'Backup',
+  'Backup': 'Backup & restore',
   'Settings': 'Settings',
 };
 
@@ -38,6 +38,7 @@ void main() {
                       'Outfits',
                       'Suggestions',
                       'Gaps & wishlist',
+                      'Backup',
                       'Settings',
                     ].contains(label)
                     ? PageHeader

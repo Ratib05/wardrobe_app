@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:file_selector/file_selector.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -32,5 +34,10 @@ class PlatformPickers {
   Future<String?> chooseBackupFile() async {
     final file = await openFile(acceptedTypeGroups: const [_zipType]);
     return file?.path;
+  }
+
+  /// Shows [path] in the system file manager (Windows only for now).
+  Future<void> openFolder(String path) async {
+    if (Platform.isWindows) await Process.run('explorer', [path]);
   }
 }

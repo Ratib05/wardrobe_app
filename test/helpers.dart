@@ -170,6 +170,11 @@ class FakePickers extends PlatformPickers {
 
   @override
   Future<String?> chooseBackupFile() async => backupFile;
+
+  final openedFolders = <String>[];
+
+  @override
+  Future<void> openFolder(String path) async => openedFolders.add(path);
 }
 
 /// Pumps (letting real IO/DB futures complete) until [finder] matches.

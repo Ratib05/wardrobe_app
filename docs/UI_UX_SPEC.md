@@ -69,7 +69,7 @@ Implemented as one page ("Gaps & wishlist" in the sidebar), not separate screens
 
 ## 9. Settings
 
-Implemented as a small page reached from the sidebar. Backup and restore have their own page.
+Implemented as a small page reached from the sidebar. Backup and restore have their own page, "Backup & restore": storage tiles (database size, photos size and count, data folder with Open folder), an export card with the suggested file name and approximate size, a restore card that explains the automatic safety copy, and a list of recent backups and safety copies.
 
 - **Score weights:** one slider per scoring factor. Values are relative; the shares shown next to the sliders are rescaled to add up to 100. "Save weights" stores them, "Reset to defaults" restores 25/20/15/15/10/10/5. They apply to Suggestions, the Outfit check in the builder, and the shoe ranking.
 - Recommendation preferences (liked and avoided colours and styles).

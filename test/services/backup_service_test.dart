@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive_io.dart';
+import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart' show Value, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -295,6 +296,47 @@ void main() {
         replace: {'manifest.json': utf8.encode(jsonEncode(m))},
       );
       await expectRejected(out, BackupError.newerSchema);
+    });
+
+    test(
+      'the manifest carries SHA-256 checksums of the database and photos',
+      () {
+        final m = manifestOf(zip);
+        final sums = (m['checksums'] as Map).cast<String, String>();
+        expect(
+          sums.keys,
+          containsAll(['database/wardrobe.db', 'images/clothing/a.jpg']),
+        );
+        final archive = ZipDecoder().decodeBytes(File(zip).readAsBytesSync());
+        final photo =
+            archive.findFile('images/clothing/a.jpg')!.content as List<int>;
+        expect(sums['images/clothing/a.jpg'], sha256.convert(photo).toString());
+      },
+    );
+
+    test('a photo that no longer matches its checksum is rejected', () async {
+      final out = p.join(target.root.path, 'tampered.zip');
+      rewriteZip(
+        zip,
+        out,
+        replace: {
+          'images/clothing/a.jpg': [1, 2, 3],
+        },
+      );
+      await expectRejected(out, BackupError.corruptDatabase);
+    });
+
+    test('a backup without checksums still restores', () async {
+      final out = p.join(target.root.path, 'old.zip');
+      final manifest = manifestOf(zip)..remove('checksums');
+      rewriteZip(
+        zip,
+        out,
+        replace: {'manifest.json': utf8.encode(jsonEncode(manifest))},
+      );
+      final staged = await service.stageRestore(out, currentSchemaVersion: 2);
+      expect(staged.manifest.checksums, isEmpty);
+      await service.discard(staged);
     });
 
     test('a damaged database is rejected', () async {

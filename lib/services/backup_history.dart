@@ -64,9 +64,16 @@ class BackupHistory {
     }
   }
 
-  void add(BackupRecord record) {
-    final all = [record, ...load()]
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  void add(BackupRecord record) => _write([record, ...load()]);
+
+  /// Forgets the record for [path] (used when an old safety copy is deleted).
+  void remove(String path) => _write([
+    for (final r in load())
+      if (r.path != path) r,
+  ]);
+
+  void _write(List<BackupRecord> all) {
+    all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final kept = all.take(_maxRecords).map((r) => r.toJson()).toList();
     final tmp = File('${file.path}.tmp');
     tmp.writeAsStringSync(jsonEncode(kept));

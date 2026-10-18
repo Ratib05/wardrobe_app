@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive_io.dart';
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sqlite;
 import 'package:drift/drift.dart' show driftRuntimeOptions;
@@ -42,6 +43,7 @@ class BackupManifest {
     required this.createdAt,
     required this.counts,
     required this.images,
+    this.checksums = const {},
   });
 
   final int formatVersion;
@@ -53,6 +55,11 @@ class BackupManifest {
   /// Relative paths (`images/clothing/<id>.jpg`) of the photos in the archive.
   final List<String> images;
 
+  /// SHA-256 (hex) of `database/wardrobe.db` and every photo, by archive
+  /// path. Optional: backups made before checksums existed have none and
+  /// are still restorable.
+  final Map<String, String> checksums;
+
   Map<String, Object?> toJson() => {
     'format': _formatName,
     'formatVersion': formatVersion,
@@ -61,7 +68,22 @@ class BackupManifest {
     'createdAt': createdAt.toUtc().toIso8601String(),
     'counts': counts,
     'images': images,
+    if (checksums.isNotEmpty) 'checksums': checksums,
   };
+
+  static Map<String, String> _checksums(Object? raw) {
+    if (raw == null) return const {};
+    if (raw is! Map) throw const FormatException('Manifest checksums invalid');
+    final result = <String, String>{};
+    for (final e in raw.entries) {
+      final key = e.key, value = e.value;
+      if (key is! String || value is! String) {
+        throw const FormatException('Manifest checksums invalid');
+      }
+      result[key] = value;
+    }
+    return result;
+  }
 
   /// Throws [FormatException] when keys are missing or of the wrong type.
   factory BackupManifest.fromJson(Map<String, Object?> json) {
@@ -87,6 +109,7 @@ class BackupManifest {
               : throw FormatException('Manifest count "${e.key}" is invalid'),
       },
       images: field<List<Object?>>('images').cast<String>(),
+      checksums: _checksums(json['checksums']),
     );
   }
 }
@@ -179,6 +202,12 @@ class BackupService {
         createdAt: DateTime.now().toUtc(),
         counts: counts,
         images: images.toList()..sort(),
+        checksums: {
+          for (final rel in ['database/wardrobe.db', ...images])
+            rel: await _sha256(
+              File(p.joinAll([staging.path, ...p.posix.split(rel)])),
+            ),
+        },
       );
       await File(p.join(staging.path, 'manifest.json')).writeAsString(
         const JsonEncoder.withIndent('  ').convert(manifest.toJson()),
@@ -203,6 +232,22 @@ class BackupService {
           // best effort
         }
       }
+    }
+  }
+
+  static Future<String> _sha256(File file) async =>
+      (await sha256.bind(file.openRead()).first).toString();
+
+  Future<void> _verifyChecksums(Directory staging, BackupManifest m) async {
+    const damaged = BackupException(
+      BackupError.corruptDatabase,
+      "The backup is damaged: a file doesn't match its checksum.",
+    );
+    final root = p.normalize(staging.path);
+    for (final e in m.checksums.entries) {
+      final file = File(p.normalize(p.join(root, e.key)));
+      if (!p.isWithin(root, file.path) || !await file.exists()) throw damaged;
+      if (await _sha256(file) != e.value) throw damaged;
     }
   }
 
@@ -254,6 +299,7 @@ class BackupService {
           'Update the app first.',
         );
       }
+      await _verifyChecksums(staging, manifest);
       final dbFile = File(p.join(staging.path, 'database', 'wardrobe.db'));
       _checkDatabaseFile(dbFile, manifest.schemaVersion);
       final (counts, imagePaths) = await _readStagedDatabase(dbFile);

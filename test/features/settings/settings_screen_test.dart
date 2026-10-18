@@ -18,6 +18,12 @@ Future<void> openSettingsPage(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> tapScrolled(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+}
+
 Future<void> openBackup(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('nav-Backup')));
   await tester.pumpAndSettle();
@@ -91,7 +97,7 @@ void main() {
       pickers: FakePickers(null, saveLocation: dest),
     );
     await openBackup(tester);
-    await tester.tap(find.text('Back up wardrobe'));
+    await tapScrolled(tester, find.text('Back up wardrobe'));
     await pumpUntilFound(tester, find.text('Backup saved'));
     expect(File(dest).existsSync(), isTrue);
   });
@@ -109,7 +115,7 @@ void main() {
       pickers: FakePickers(null, backupFile: txt.path),
     );
     await openBackup(tester);
-    await tester.tap(find.text('Restore wardrobe'));
+    await tapScrolled(tester, find.text('Restore wardrobe'));
     await pumpUntilFound(
       tester,
       find.text("This file isn't a wardrobe backup."),
@@ -129,7 +135,7 @@ void main() {
       pickers: FakePickers(null, backupFile: zip),
     );
     await openBackup(tester);
-    await tester.tap(find.text('Restore wardrobe'));
+    await tapScrolled(tester, find.text('Restore wardrobe'));
     await pumpUntilFound(tester, find.text('Replace your wardrobe?'));
     expect(find.textContaining('Your current 1 item'), findsOneWidget);
     expect(find.textContaining('(2 items'), findsOneWidget);
@@ -154,7 +160,7 @@ void main() {
       pickers: FakePickers(null, backupFile: zip),
     );
     await openBackup(tester);
-    await tester.tap(find.text('Restore wardrobe'));
+    await tapScrolled(tester, find.text('Restore wardrobe'));
     await pumpUntilFound(tester, find.text('Replace your wardrobe?'));
     await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
     // The progress bar stays up until the staging folder has been removed.
@@ -182,7 +188,7 @@ void main() {
       ],
     );
     await openBackup(tester);
-    await tester.tap(find.text('Restore wardrobe'));
+    await tapScrolled(tester, find.text('Restore wardrobe'));
     await pumpUntilFound(tester, find.text('Replace your wardrobe?'));
     await tester.tap(find.widgetWithText(FilledButton, 'Replace'));
     await pumpUntilFound(
@@ -227,5 +233,100 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Reset'));
     await pumpUntilFound(tester, find.text('Reset 1 dismissed recommendation'));
+  });
+
+  testApp(
+    'the Backup page shows sizes, a suggested file name and Open folder',
+    (tester, paths) async {
+      final pickers = FakePickers(null);
+      await pumpApp(tester, paths: paths, items: existing, pickers: pickers);
+      await openBackup(tester);
+      await pumpUntilFound(tester, find.byKey(const Key('db-size')));
+      expect(
+        tester.widget<Text>(find.byKey(const Key('suggested-file'))).data,
+        matches(RegExp(r'^wardrobe-backup-\d{4}-\d{2}-\d{2}\.zip$')),
+      );
+      await tapScrolled(tester, find.byKey(const Key('open-folder')));
+      await tester.pump();
+      expect(pickers.openedFolders, [paths.root.path]);
+    },
+  );
+
+  testApp('a finished backup appears under Recent backups', (
+    tester,
+    paths,
+  ) async {
+    final dest = p.join(
+      Directory.systemTemp.createTempSync('wardrobe_dest_').path,
+      'mine.zip',
+    );
+    await pumpApp(
+      tester,
+      paths: paths,
+      items: existing,
+      pickers: FakePickers(null, saveLocation: dest),
+    );
+    await openBackup(tester);
+    expect(find.text('No backups made yet.'), findsOneWidget);
+    await tapScrolled(tester, find.text('Back up wardrobe'));
+    await pumpUntilFound(tester, find.text('mine.zip'));
+  });
+
+  testApp('restoring first saves a safety copy and lists it', (
+    tester,
+    paths,
+  ) async {
+    final zip = await makeBackupZip(tester);
+    await pumpApp(
+      tester,
+      paths: paths,
+      items: existing,
+      pickers: FakePickers(null, backupFile: zip),
+    );
+    await openBackup(tester);
+    await tapScrolled(tester, find.text('Restore wardrobe'));
+    await pumpUntilFound(tester, find.text('Replace your wardrobe?'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Replace'));
+    await pumpUntilFound(tester, find.textContaining('Wardrobe restored'));
+    final copies = paths.safetyCopiesDir.listSync().whereType<File>().toList();
+    expect(copies, hasLength(1));
+    await pumpUntilFound(
+      tester,
+      find.textContaining('Safety copy · safety-copy-'),
+    );
+  });
+
+  testApp('if the safety copy cannot be saved, nothing is replaced', (
+    tester,
+    paths,
+  ) async {
+    final zip = await makeBackupZip(tester);
+    // A file where the folder should be makes the safety copy impossible.
+    File(paths.safetyCopiesDir.path).writeAsStringSync('in the way');
+    await pumpApp(
+      tester,
+      paths: paths,
+      items: existing,
+      pickers: FakePickers(null, backupFile: zip),
+    );
+    await openBackup(tester);
+    await tapScrolled(tester, find.text('Restore wardrobe'));
+    await pumpUntilFound(tester, find.text('Replace your wardrobe?'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Replace'));
+    await pumpUntilFound(
+      tester,
+      find.textContaining(
+        'safety copy of your current wardrobe could not be saved',
+      ),
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'OK'));
+    await tester.pumpAndSettle();
+    expect(await itemCount(tester), 1);
+    expect(
+      paths.tempDir.listSync().where(
+        (e) => p.basename(e.path).startsWith('restore-'),
+      ),
+      isEmpty,
+    );
   });
 }

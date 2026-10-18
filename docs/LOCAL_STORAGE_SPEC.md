@@ -136,7 +136,7 @@ Code: `lib/services/backup_service.dart` (archive logic), `lib/features/settings
 
 Archive layout: `manifest.json`, `database/wardrobe.db`, `images/clothing/<id>.jpg`.
 
-Manifest fields: `format` ("wardrobe-backup"), `formatVersion` (1), `appVersion`, `schemaVersion`, `createdAt` (UTC ISO-8601), `counts` (`clothingItems`, `outfits`, `wishlistItems`), `images` (relative paths).
+Manifest fields: `format` ("wardrobe-backup"), `formatVersion` (1), `appVersion`, `schemaVersion`, `createdAt` (UTC ISO-8601), `counts` (`clothingItems`, `outfits`, `wishlistItems`), `images` (relative paths), and optionally `checksums` (SHA-256 hex of `database/wardrobe.db` and every photo, by archive path). Backups made before checksums existed have none and still restore.
 
 ### Restore
 Validation happens entirely in a staging folder (`temporary/restore-<id>/`) before the user is asked to confirm, in this order. Any failure removes the staging folder, leaves live data untouched, and reports one of these messages:
@@ -146,18 +146,20 @@ Validation happens entirely in a staging folder (`temporary/restore-<id>/`) befo
 | Not a readable ZIP, no valid manifest | "This file isn't a wardrobe backup." |
 | `formatVersion` is not 1 | "This backup uses a format this app can't read." |
 | `schemaVersion` newer than the app's | "This backup was made by a newer version of the app. Update the app first." |
+| A listed file is missing or does not match its checksum | "The backup is damaged: a file doesn't match its checksum." |
 | Database missing, fails SQLite `integrity_check`, `user_version` differs from the manifest, has foreign-key violations, or cannot be opened | "The backup's database is damaged and can't be restored." |
 
 Archive entries that would extract outside the staging folder (for example `../x`) are skipped. Older backups are migrated by opening the staged copy with the app's own schema. Photos referenced by the database but absent from the archive are listed as a warning, not an error.
 
 The confirmation dialog shows the current record counts, the backup's date and counts, and the number of missing photos. On confirm:
+0. A safety copy of the current wardrobe is saved to `safety-copies/safety-copy-<timestamp>.zip` (same format as a backup; the newest 3 are kept) and listed in the history. If it cannot be written, the restore is cancelled with a message and nothing is changed. If the current wardrobe cannot be read at all, this step is skipped, since that is exactly when restoring is needed.
 1. The live database connection is closed (the connection itself, because Riverpod pauses listeners on off-screen tabs and drift's `close()` would wait for them).
 2. The live `data/` and `images/` folders are moved to `temporary/pre-restore-<id>/`; the staged `database/` and `images/` folders are moved into place.
 3. If any step fails, the partly placed folders are removed, the originals are moved back, and the user sees "Restore failed. Your existing wardrobe was kept."
 4. On success the rollback and staging folders are deleted. In both cases the database connection is reopened and the image cache is cleared.
 
-### Settings
-Back up wardrobe, Restore wardrobe (with the warning "Restoring replaces your current wardrobe."), the data folder path, photo and missing-photo counts, recommendation preferences, "Reset dismissed recommendations", and the app version. Buttons are disabled and a progress bar is shown while a backup or restore runs.
+### Backup page
+Database size, photo size and count (with missing photos), the data folder with an **Open folder** button (Windows), an export card (suggested file name, approximate size, Back up wardrobe), a restore card (with the safety-copy note) and a Recent backups list that includes safety copies (a file that has since been moved shows "File not found"). Buttons are disabled and a progress bar is shown while a backup or restore runs. Recommendation settings live on the separate Settings page.
 
 ### Limitations
 - The save and open dialogs use `file_selector`, which supports Windows, macOS and Linux. Android needs a different export route (see the roadmap, Phase 8).
@@ -165,5 +167,5 @@ Back up wardrobe, Restore wardrobe (with the warning "Restoring replaces your cu
 
 ## 13. Additional Local Files
 
-- `safety-copies/`: automatic copies of the database made before a schema upgrade.
+- `safety-copies/`: automatic copies of the database made before a schema upgrade (`.db` files), and full safety backups (`.zip`) made before a restore.
 - `backup_history.json`: a small log (newest first, at most 20 entries) of backups made on this device, used for "Last backup 3 days ago". It lives next to `data/` and `images/`, so a restore does not overwrite it, and it is not included in backups. A missing or damaged file is treated as an empty history.
