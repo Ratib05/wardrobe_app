@@ -3,6 +3,7 @@
 ## Wardrobe Management
 
 - As a user, I want to add clothing with a photo so I can recognise items quickly.
+- As a user, I want to import many photos at once so I can catalogue my wardrobe quickly, then find the items that still need details.
 - As a user, I want to record clothing attributes so I can filter and organise my wardrobe.
 - As a user, I want to edit item details when something changes.
 - As a user, I want to archive items I no longer wear without permanently deleting them.

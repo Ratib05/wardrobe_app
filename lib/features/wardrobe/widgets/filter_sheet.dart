@@ -55,6 +55,13 @@ class FilterSheet extends ConsumerWidget {
             value: f.favouritesOnly,
             onChanged: (v) => notifier.set(f.copyWith(favouritesOnly: v)),
           ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Needs details'),
+            subtitle: const Text('No main colour or formality yet'),
+            value: f.needsDetailsOnly,
+            onChanged: (v) => notifier.set(f.copyWith(needsDetailsOnly: v)),
+          ),
           section(
             'Category',
             EnumChips<ClothingCategory>(

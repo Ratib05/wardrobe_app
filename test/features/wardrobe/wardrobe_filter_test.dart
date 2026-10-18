@@ -98,5 +98,25 @@ void main() {
     expect(const WardrobeFilter().hasCriteria, isFalse);
     expect(const WardrobeFilter(sort: WardrobeSort.name).hasCriteria, isFalse);
     expect(const WardrobeFilter(favouritesOnly: true).hasCriteria, isTrue);
+    expect(const WardrobeFilter(needsDetailsOnly: true).hasCriteria, isTrue);
+  });
+
+  test('needsDetailsOnly keeps items missing a colour or formality', () {
+    final items = [
+      item(
+        name: 'Done',
+        primaryColour: WardrobeColour.navy,
+        formality: Formality.casual,
+      ),
+      item(name: 'No formality', primaryColour: WardrobeColour.navy),
+      item(name: 'Bare'),
+    ];
+    expect(
+      names(
+        const WardrobeFilter(needsDetailsOnly: true, sort: WardrobeSort.name),
+        items,
+      ),
+      ['Bare', 'No formality'],
+    );
   });
 }

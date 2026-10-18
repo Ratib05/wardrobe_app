@@ -23,6 +23,7 @@ class WardrobeFilter {
     this.occasions = const {},
     this.formalities = const {},
     this.favouritesOnly = false,
+    this.needsDetailsOnly = false,
     this.sort = WardrobeSort.recentlyAdded,
   });
 
@@ -34,6 +35,10 @@ class WardrobeFilter {
   final Set<Occasion> occasions;
   final Set<Formality> formalities;
   final bool favouritesOnly;
+
+  /// Only items missing a main colour or formality (see
+  /// [ClothingItem.needsDetails]).
+  final bool needsDetailsOnly;
   final WardrobeSort sort;
 
   /// True when anything other than the sort order is set.
@@ -45,7 +50,8 @@ class WardrobeFilter {
       seasons.isNotEmpty ||
       occasions.isNotEmpty ||
       formalities.isNotEmpty ||
-      favouritesOnly;
+      favouritesOnly ||
+      needsDetailsOnly;
 
   WardrobeFilter copyWith({
     String? query,
@@ -56,6 +62,7 @@ class WardrobeFilter {
     Set<Occasion>? occasions,
     Set<Formality>? formalities,
     bool? favouritesOnly,
+    bool? needsDetailsOnly,
     WardrobeSort? sort,
   }) => WardrobeFilter(
     query: query ?? this.query,
@@ -66,6 +73,7 @@ class WardrobeFilter {
     occasions: occasions ?? this.occasions,
     formalities: formalities ?? this.formalities,
     favouritesOnly: favouritesOnly ?? this.favouritesOnly,
+    needsDetailsOnly: needsDetailsOnly ?? this.needsDetailsOnly,
     sort: sort ?? this.sort,
   );
 
@@ -82,6 +90,7 @@ class WardrobeFilter {
     final q = query.trim().toLowerCase();
     if (q.isNotEmpty && !_matchesQuery(i, q)) return false;
     if (favouritesOnly && !i.isFavourite) return false;
+    if (needsDetailsOnly && !i.needsDetails) return false;
     if (categories.isNotEmpty && !categories.contains(i.category)) return false;
     if (colours.isNotEmpty &&
         !colours.any(

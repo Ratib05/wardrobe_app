@@ -1,7 +1,11 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+import 'package:uuid/uuid.dart';
+
 import '../../core/app_exceptions.dart';
 import '../../core/clothing_item.dart';
+import '../../core/wardrobe_values.dart';
 import '../../database/app_database.dart';
 import '../../services/image_storage.dart';
 
@@ -66,6 +70,65 @@ class ClothingRepository {
     if (oldPath != null && oldPath != toSave.imagePath) {
       await _images.delete(oldPath);
     }
+  }
+
+  /// Creates one item per photo in [paths], all in [category], named from
+  /// the file name and hidden from suggestions until the user fills them in.
+  /// Photos that can't be read are skipped and returned by file name; the
+  /// rest are saved in one transaction, so a failed write keeps nothing.
+  Future<({int imported, List<String> skipped})> importPhotos(
+    List<String> paths,
+    ClothingCategory category, {
+    void Function(int done, int total)? onProgress,
+  }) async {
+    final staged = <(String, File)>[];
+    final skipped = <String>[];
+    for (final path in paths) {
+      try {
+        staged.add((path, await _images.stage(path)));
+      } on UnsupportedImageException {
+        skipped.add(p.basename(path));
+      } on FileSystemException {
+        skipped.add(p.basename(path));
+      }
+      onProgress?.call(staged.length + skipped.length, paths.length);
+    }
+    final committed = <String>[];
+    try {
+      final now = DateTime.now();
+      final items = <ClothingItem>[];
+      for (final (i, (path, file)) in staged.indexed) {
+        final imagePath = await _images.commit(file);
+        committed.add(imagePath);
+        // Spaced apart so "recently added" keeps a stable order.
+        final created = now.add(Duration(milliseconds: i));
+        items.add(
+          ClothingItem(
+            id: const Uuid().v4(),
+            name: nameFromFileName(path),
+            category: category,
+            imagePath: imagePath,
+            hideFromSuggestions: true,
+            createdAt: created,
+            updatedAt: created,
+          ),
+        );
+      }
+      await _db.transaction(() async {
+        for (final item in items) {
+          await _db.clothingDao.upsert(item);
+        }
+      });
+    } catch (_) {
+      for (final path in committed) {
+        await _images.delete(path);
+      }
+      for (final (_, file) in staged) {
+        await _images.discard(file);
+      }
+      rethrow;
+    }
+    return (imported: staged.length, skipped: skipped);
   }
 
   Future<void> setArchived(String id, bool archived) =>

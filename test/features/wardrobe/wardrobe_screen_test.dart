@@ -179,12 +179,81 @@ void main() {
     );
   });
 
+  testApp('needs details chip counts and filters unfinished items', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    await tester.tap(find.byKey(const Key('needs-details')));
+    await tester.pumpAndSettle();
+    expect(find.text('Needs details (2)'), findsOneWidget);
+    expect(find.text('Indigo jeans'), findsOneWidget);
+    expect(find.text('White sneakers'), findsOneWidget);
+    expect(find.text('White oxford shirt'), findsNothing);
+  });
+
+  testApp('import photos creates hidden items in the chosen category', (
+    tester,
+    paths,
+  ) async {
+    final pickers = FakePickers(null)
+      ..imagePaths = [
+        writeTestJpeg(paths, 'linen_shirt.jpg'),
+        writeTestJpeg(paths, 'chinos.jpg'),
+      ];
+    await pumpApp(tester, paths: paths, pickers: pickers);
+    await tester.tap(find.byKey(const Key('import-photos')));
+    await tester.pumpAndSettle();
+    expect(find.text('2 photos selected'), findsOneWidget);
+    final importButton = find.widgetWithText(FilledButton, 'Import');
+    expect(tester.widget<FilledButton>(importButton).onPressed, isNull);
+
+    await tester.tap(find.byKey(const Key('import-category')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bottom').last);
+    await tester.pumpAndSettle();
+    await tester.tap(importButton);
+    await pumpUntilFound(tester, find.text('Imported 2 items'));
+
+    final container = containerOf(tester);
+    final items = container.read(wardrobeItemsProvider(false)).value!;
+    expect(items.map((i) => i.name).toSet(), {'Linen shirt', 'Chinos'});
+    expect(items.every((i) => i.category == ClothingCategory.bottom), isTrue);
+    expect(items.every((i) => i.hideFromSuggestions), isTrue);
+
+    await tester.pumpAndSettle(); // let the snackbar finish sliding in
+    await tester.tap(find.text('Show'));
+    await tester.pumpAndSettle();
+    expect(container.read(wardrobeFilterProvider).needsDetailsOnly, isTrue);
+  });
+
+  testApp('cancelling the picker or the dialog imports nothing', (
+    tester,
+    paths,
+  ) async {
+    final pickers = FakePickers(null);
+    await pumpApp(tester, paths: paths, pickers: pickers);
+    await tester.tap(find.byKey(const Key('import-photos')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+
+    pickers.imagePaths = [writeTestJpeg(paths)];
+    await tester.tap(find.byKey(const Key('import-photos')));
+    await tester.pumpAndSettle();
+    expect(find.text('1 photo selected'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('Your wardrobe is empty'), findsOneWidget);
+  });
+
   testApp(
     'narrow layout shows a filter button, search and an add button',
     (tester, paths) async {
       await pumpApp(tester, paths: paths, items: wardrobe);
       expect(find.byTooltip('Filters'), findsOneWidget);
       expect(find.byTooltip('Add item'), findsOneWidget);
+      expect(find.byTooltip('Import photos'), findsOneWidget);
       expect(find.text('Search your wardrobe'), findsOneWidget);
       expect(find.byKey(const Key('add-item')), findsNothing);
       expect(find.text('White oxford shirt'), findsOneWidget);

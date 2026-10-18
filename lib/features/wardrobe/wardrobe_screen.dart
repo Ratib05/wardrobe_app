@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets/clothing_photo.dart';
 import '../../app/widgets/error_view.dart';
@@ -50,6 +51,9 @@ class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
   bool _grid = true;
   late final TextEditingController _search;
 
+  /// Set while a bulk photo import runs.
+  ({int done, int total})? _progress;
+
   @override
   void initState() {
     super.initState();
@@ -77,6 +81,55 @@ class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
     isScrollControlled: true,
     builder: (_) => const FilterSheet(),
   );
+
+  void _showNeedsDetails() => _notifier.set(
+    ref.read(wardrobeFilterProvider).copyWith(needsDetailsOnly: true),
+  );
+
+  Future<void> _importPhotos() async {
+    final paths = await ref.read(platformPickersProvider).pickImagePaths();
+    if (paths.isEmpty || !mounted) return;
+    final category = await showDialog<ClothingCategory>(
+      context: context,
+      builder: (_) => _ImportDialog(count: paths.length),
+    );
+    if (category == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _progress = (done: 0, total: paths.length));
+    try {
+      final result = await ref
+          .read(clothingRepositoryProvider)
+          .importPhotos(
+            paths,
+            category,
+            onProgress: (done, total) {
+              if (!mounted) return;
+              setState(() => _progress = (done: done, total: total));
+            },
+          );
+      final skipped = result.skipped;
+      final skippedNote = skipped.isEmpty
+          ? ''
+          : ' · ${skipped.length} skipped (${skipped.join(', ')})';
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Imported ${result.imported} '
+            '${_plural(result.imported, 'item')}$skippedNote',
+          ),
+          action: result.imported == 0
+              ? null
+              : SnackBarAction(label: 'Show', onPressed: _showNeedsDetails),
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Import failed, nothing was added: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _progress = null);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,13 +180,27 @@ class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
                   eyebrow: eyebrow,
                   title: widget.archived ? 'Archived' : 'Wardrobe',
                   compact: true,
-                  trailing: IconButton.outlined(
-                    tooltip: 'Filters',
-                    icon: Badge(
-                      isLabelVisible: filter.hasCriteria,
-                      child: const Icon(Icons.tune),
-                    ),
-                    onPressed: _openFilters,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!widget.archived) ...[
+                        IconButton.outlined(
+                          key: const Key('import-photos'),
+                          tooltip: 'Import photos',
+                          icon: const Icon(Icons.add_photo_alternate_outlined),
+                          onPressed: _progress == null ? _importPhotos : null,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      IconButton.outlined(
+                        tooltip: 'Filters',
+                        icon: Badge(
+                          isLabelVisible: filter.hasCriteria,
+                          child: const Icon(Icons.tune),
+                        ),
+                        onPressed: _openFilters,
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -147,6 +214,16 @@ class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
                     children: [
                       SizedBox(width: 300, child: searchField),
                       if (!widget.archived) ...[
+                        const SizedBox(width: 12),
+                        OutlinedButton.icon(
+                          key: const Key('import-photos'),
+                          onPressed: _progress == null ? _importPhotos : null,
+                          icon: const Icon(
+                            Icons.add_photo_alternate_outlined,
+                            size: 20,
+                          ),
+                          label: const Text('Import photos'),
+                        ),
                         const SizedBox(width: 12),
                         FilledButton.icon(
                           key: const Key('add-item'),
@@ -170,6 +247,7 @@ class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
                 _FilterRow(
                   filter: filter,
                   onChanged: _notifier.set,
+                  needsDetailsCount: items.where((i) => i.needsDetails).length,
                   grid: _grid,
                   onToggleView: () => setState(() => _grid = !_grid),
                   onMoreFilters: _openFilters,
@@ -177,6 +255,12 @@ class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
                       ? null
                       : () => context.push('/wardrobe/archived'),
                 ),
+              ],
+              if (_progress case final progress?) ...[
+                const SizedBox(height: 12),
+                Text('Importing ${progress.done} of ${progress.total}…'),
+                const SizedBox(height: 6),
+                LinearProgressIndicator(value: progress.done / progress.total),
               ],
               SizedBox(height: compact ? 12 : 20),
             ],
@@ -344,6 +428,7 @@ class _FilterRow extends StatelessWidget {
   const _FilterRow({
     required this.filter,
     required this.onChanged,
+    required this.needsDetailsCount,
     required this.grid,
     required this.onToggleView,
     required this.onMoreFilters,
@@ -352,6 +437,7 @@ class _FilterRow extends StatelessWidget {
 
   final WardrobeFilter filter;
   final ValueChanged<WardrobeFilter> onChanged;
+  final int needsDetailsCount;
   final bool grid;
   final VoidCallback onToggleView;
   final VoidCallback onMoreFilters;
@@ -435,6 +521,12 @@ class _FilterRow extends StatelessWidget {
               ),
           ],
         ),
+        FilterChip(
+          key: const Key('needs-details'),
+          label: Text('Needs details ($needsDetailsCount)'),
+          selected: filter.needsDetailsOnly,
+          onSelected: (v) => onChanged(filter.copyWith(needsDetailsOnly: v)),
+        ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -503,6 +595,58 @@ class _Dropdown<T> extends StatelessWidget {
             style: const TextStyle(color: AppColors.text, fontSize: 14),
           ),
         ),
+      ),
+    ],
+  );
+}
+
+/// Asks which category a batch of imported photos belongs to.
+class _ImportDialog extends StatefulWidget {
+  const _ImportDialog({required this.count});
+
+  final int count;
+
+  @override
+  State<_ImportDialog> createState() => _ImportDialogState();
+}
+
+class _ImportDialogState extends State<_ImportDialog> {
+  ClothingCategory? _category;
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text('${widget.count} ${_plural(widget.count, 'photo')} selected'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Each photo becomes an item named after its file. They stay hidden '
+          'from suggestions until you add their details.',
+        ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<ClothingCategory>(
+          key: const Key('import-category'),
+          initialValue: _category,
+          hint: const Text('Choose a category'),
+          items: [
+            for (final c in ClothingCategory.values)
+              DropdownMenuItem(value: c, child: Text(c.label)),
+          ],
+          onChanged: (c) => setState(() => _category = c),
+        ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: _category == null
+            ? null
+            : () => Navigator.pop(context, _category),
+        child: const Text('Import'),
       ),
     ],
   );

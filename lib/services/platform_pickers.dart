@@ -16,6 +16,13 @@ class PlatformPickers {
     return file?.path;
   }
 
+  /// Opens the gallery / file dialog allowing several photos; returns their
+  /// paths (empty if cancelled).
+  Future<List<String>> pickImagePaths() async {
+    final files = await ImagePicker().pickMultiImage();
+    return [for (final f in files) f.path];
+  }
+
   /// Whether the device has a camera flow worth offering (phones only).
   bool get canTakePhoto => Platform.isAndroid;
 

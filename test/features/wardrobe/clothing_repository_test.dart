@@ -125,4 +125,58 @@ void main() {
     );
     expect(paths.clothingImagesDir.listSync(), isEmpty);
   });
+
+  group('importPhotos', () {
+    test('creates one hidden item per photo in the chosen category', () async {
+      final progress = <int>[];
+      final result = await repo.importPhotos(
+        [writeTestJpeg(paths, 'navy_tee.jpg'), writeTestJpeg(paths, 'b.jpg')],
+        ClothingCategory.top,
+        onProgress: (done, _) => progress.add(done),
+      );
+      expect(result.imported, 2);
+      expect(result.skipped, isEmpty);
+      expect(progress, [1, 2]);
+      final all = await repo.watchItems().first;
+      expect(all.map((i) => i.name).toSet(), {'Navy tee', 'B'});
+      for (final i in all) {
+        expect(i.category, ClothingCategory.top);
+        expect(i.hideFromSuggestions, isTrue);
+        expect(i.needsDetails, isTrue);
+        expect(paths.imageFile(i.imagePath!).existsSync(), isTrue);
+      }
+      expect(paths.tempDir.listSync(), isEmpty);
+    });
+
+    test('skips unreadable files and keeps the rest', () async {
+      final bad = File('${paths.root.path}/notes.jpg')
+        ..writeAsStringSync('not an image');
+      final result = await repo.importPhotos([
+        bad.path,
+        '${paths.root.path}/missing.jpg',
+        writeTestJpeg(paths, 'good.jpg'),
+      ], ClothingCategory.footwear);
+      expect(result.imported, 1);
+      expect(result.skipped, ['notes.jpg', 'missing.jpg']);
+      final all = await repo.watchItems().first;
+      expect(all.single.name, 'Good');
+      expect(paths.clothingImagesDir.listSync(), hasLength(1));
+    });
+
+    test('a failed write keeps no items and no photo files', () async {
+      await db.customStatement(
+        "CREATE TRIGGER boom BEFORE INSERT ON clothing_items BEGIN SELECT RAISE(ABORT, 'boom'); END",
+      );
+      await expectLater(
+        repo.importPhotos([
+          writeTestJpeg(paths, 'a.jpg'),
+          writeTestJpeg(paths, 'b.jpg'),
+        ], ClothingCategory.top),
+        throwsA(anything),
+      );
+      expect(await repo.watchItems().first, isEmpty);
+      expect(paths.clothingImagesDir.listSync(), isEmpty);
+      expect(paths.tempDir.listSync(), isEmpty);
+    });
+  });
 }

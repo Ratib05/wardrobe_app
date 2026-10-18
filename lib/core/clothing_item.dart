@@ -8,6 +8,18 @@ String? validateItemName(String name) {
   return null;
 }
 
+/// A readable item name from a photo's file name, for bulk import:
+/// `C:\Photos\blue_oxford-shirt.JPG` becomes "Blue oxford shirt".
+String nameFromFileName(String path) {
+  final file = path.split(RegExp(r'[\\/]')).last;
+  final dot = file.lastIndexOf('.');
+  final stem = dot > 0 ? file.substring(0, dot) : file;
+  var name = stem.replaceAll(RegExp(r'[_.\-\s]+'), ' ').trim();
+  if (name.isEmpty) return 'Imported item';
+  if (name.length > 80) name = name.substring(0, 80).trim();
+  return name[0].toUpperCase() + name.substring(1);
+}
+
 class ClothingItem {
   const ClothingItem({
     required this.id,
@@ -67,4 +79,8 @@ class ClothingItem {
       !isArchived &&
       !hideFromSuggestions &&
       condition != ItemCondition.needsRepair;
+
+  /// Missing what suggestions rely on most (main colour or formality), as
+  /// freshly imported photos are.
+  bool get needsDetails => primaryColour == null || formality == null;
 }

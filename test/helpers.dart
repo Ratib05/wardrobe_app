@@ -164,6 +164,12 @@ class FakePickers extends PlatformPickers {
   @override
   Future<String?> pickImagePath() async => imagePath;
 
+  /// Returned by the multi-photo picker (bulk import).
+  List<String> imagePaths = const [];
+
+  @override
+  Future<List<String>> pickImagePaths() async => imagePaths;
+
   @override
   Future<String?> chooseBackupSaveLocation(String suggestedName) async =>
       saveLocation;
