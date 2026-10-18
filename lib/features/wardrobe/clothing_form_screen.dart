@@ -15,9 +15,11 @@ import '../../core/app_exceptions.dart';
 import '../../core/clothing_item.dart';
 import '../../core/wardrobe_values.dart';
 import '../../services/image_storage.dart';
+import '../../services/photo_colours.dart';
 import '../wishlist/wishlist_providers.dart';
 import 'item_stats_provider.dart';
 import 'wardrobe_providers.dart';
+import 'widgets/identify_colour_dialog.dart';
 
 const _months = [
   'Jan',
@@ -33,6 +35,10 @@ const _months = [
   'Nov',
   'Dec',
 ];
+
+/// Fields the form can fill in as a suggestion; the user's own change to a
+/// field removes it from the suggested set, so it is never overwritten.
+enum _Field { colours }
 
 /// Add a new item, or edit the item with [itemId].
 class ClothingFormScreen extends ConsumerStatefulWidget {
@@ -75,6 +81,8 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
   ItemCondition _condition = ItemCondition.good;
   bool _favourite = false;
   bool _hidden = false;
+
+  final _suggested = <_Field>{};
 
   File? _staged;
   bool _removePhoto = false;
@@ -156,6 +164,61 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
       _condition = item.condition;
       _favourite = item.isFavourite;
       _hidden = item.hideFromSuggestions;
+    });
+    if (_colours.isEmpty) _suggestColour();
+  }
+
+  /// True while the colours are empty or were only suggested by the app.
+  bool get _mayFillColours =>
+      _colours.isEmpty || _suggested.contains(_Field.colours);
+
+  /// Names the item's main colour from its photo, unless the user has set
+  /// colours themselves.
+  void _suggestColour() => _colourRead = _readColourSuggestion();
+
+  /// The suggestion in progress. Save waits for it: on Windows a photo that
+  /// is still being read cannot be moved into the wardrobe.
+  Future<void> _colourRead = Future.value();
+
+  Future<void> _readColourSuggestion() async {
+    final file = _currentPhotoFile;
+    if (!_mayFillColours || file == null) return;
+    final pixels = await readPhotoPixels(file);
+    // The user may have chosen a colour, or saved, while the photo was read.
+    if (!mounted || _saving || !_mayFillColours) return;
+    final colour = pixels?.mainColour();
+    setState(() {
+      if (colour == null) {
+        if (_suggested.remove(_Field.colours)) _colours = [];
+        return;
+      }
+      _colours = [colour];
+      _suggested.add(_Field.colours);
+    });
+  }
+
+  Future<void> _identifyColour() async {
+    final file = _currentPhotoFile;
+    if (file == null) return;
+    final pixels = await readPhotoPixels(file);
+    if (!mounted) return;
+    if (pixels == null) {
+      _snack('Could not read that photo.');
+      return;
+    }
+    final picked = await showDialog<IdentifiedColour>(
+      context: context,
+      builder: (_) => IdentifyColourDialog(photo: file, pixels: pixels),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _suggested.remove(_Field.colours);
+      _colours.remove(picked.colour);
+      if (picked.asMain) {
+        _colours.insert(0, picked.colour);
+      } else {
+        _colours.add(picked.colour);
+      }
     });
   }
 
@@ -253,6 +316,7 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
       _removePhoto = false;
     });
     if (old != null) await _images.discard(old);
+    _suggestColour();
   }
 
   /// Turns the current photo 90 degrees clockwise (as a new staged file).
@@ -280,6 +344,8 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
     });
     if (nameError != null || categoryError != null) return;
 
+    setState(() => _saving = true);
+    await _colourRead;
     final now = DateTime.now();
     final existing = _existing;
     final item = ClothingItem(
@@ -307,7 +373,6 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
     );
-    setState(() => _saving = true);
     try {
       final wishlistId = widget.fromWishlistId;
       if (wishlistId != null && !_editing) {
@@ -460,27 +525,43 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
 
   Widget _colourSection() => _labeled(
     'Colours',
-    hint: '· first is the main colour',
+    hint: _suggested.contains(_Field.colours)
+        ? '· first is the main colour · suggested from photo'
+        : '· first is the main colour',
     Wrap(
       spacing: 8,
       runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         for (var i = 0; i < _colours.length; i++)
           _ColourChip(
             colour: _colours[i],
             isMain: i == 0,
             onMakeMain: () => setState(() {
+              _suggested.remove(_Field.colours);
               final c = _colours.removeAt(i);
               _colours.insert(0, c);
             }),
-            onRemove: () => setState(() => _colours.removeAt(i)),
+            onRemove: () => setState(() {
+              _suggested.remove(_Field.colours);
+              _colours.removeAt(i);
+            }),
           ),
         _AddColour(
           available: [
             for (final c in WardrobeColour.values)
               if (!_colours.contains(c)) c,
           ],
-          onAdd: (c) => setState(() => _colours.add(c)),
+          onAdd: (c) => setState(() {
+            _suggested.remove(_Field.colours);
+            _colours.add(c);
+          }),
+        ),
+        ActionChip(
+          key: const Key('identify-colour'),
+          avatar: const Icon(Icons.colorize, size: 18),
+          label: const Text('Identify from photo'),
+          onPressed: _hasPhoto ? _identifyColour : null,
         ),
       ],
     ),

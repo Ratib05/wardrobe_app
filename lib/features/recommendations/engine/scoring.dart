@@ -76,9 +76,8 @@ const clashingColourPairs = <(WardrobeColour, WardrobeColour)>[
   (WardrobeColour.orange, WardrobeColour.purple),
 ];
 
-bool _clashes(WardrobeColour a, WardrobeColour b) => clashingColourPairs.any(
-  (p) => (p.$1 == a && p.$2 == b) || (p.$1 == b && p.$2 == a),
-);
+bool coloursClash(WardrobeColour a, WardrobeColour b) => clashingColourPairs
+    .any((p) => (p.$1 == a && p.$2 == b) || (p.$1 == b && p.$2 == a));
 
 /// Neutral with anything 1.0; same colour or family 0.8; clash 0.0;
 /// otherwise 0.5. A missing colour scores 0.5.
@@ -86,7 +85,7 @@ double colourPairScore(WardrobeColour? a, WardrobeColour? b) {
   if (a == null || b == null) return neutralScore;
   if (a.isNeutral || b.isNeutral) return 1.0;
   if (a == b || a.family == b.family) return 0.8;
-  if (_clashes(a, b)) return 0.0;
+  if (coloursClash(a, b)) return 0.0;
   return neutralScore;
 }
 

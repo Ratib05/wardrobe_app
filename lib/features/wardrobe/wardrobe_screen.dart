@@ -483,39 +483,31 @@ class _FilterRow extends StatelessWidget {
           onChanged: (s) =>
               onChanged(filter.copyWith(sort: s ?? WardrobeSort.recentlyAdded)),
         ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             const Text('Colour', style: TextStyle(color: AppColors.muted)),
-            const SizedBox(width: 8),
             for (final c in _swatchColours)
-              Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: Tooltip(
-                  message: c.label,
-                  child: InkResponse(
-                    key: Key('swatch-${c.name}'),
-                    onTap: () => onChanged(
-                      filter.copyWith(
-                        colours: colours.contains(c)
-                            ? (Set.of(colours)..remove(c))
-                            : {...colours, c},
-                      ),
-                    ),
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: Color(c.argb),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: colours.contains(c)
-                              ? AppColors.primary
-                              : AppColors.border,
-                          width: colours.contains(c) ? 2.5 : 1,
-                        ),
-                      ),
-                    ),
+              FilterChip(
+                key: Key('swatch-${c.name}'),
+                avatar: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: Color(c.argb),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.border),
+                  ),
+                ),
+                label: Text(c.label),
+                selected: colours.contains(c),
+                onSelected: (_) => onChanged(
+                  filter.copyWith(
+                    colours: colours.contains(c)
+                        ? (Set.of(colours)..remove(c))
+                        : {...colours, c},
                   ),
                 ),
               ),
@@ -654,6 +646,7 @@ class _ImportDialogState extends State<_ImportDialog> {
 
 String _caption(ClothingItem i) => [
   i.category.labelPlural,
+  if (i.primaryColour != null) i.primaryColour!.label,
   if (i.formality != null) i.formality!.label,
 ].join(' · ').toUpperCase();
 

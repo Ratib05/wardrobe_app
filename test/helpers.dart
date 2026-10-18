@@ -256,6 +256,19 @@ Future<void> pumpUntilGone(WidgetTester tester, Finder finder) async {
   fail('Timed out waiting for $finder to disappear');
 }
 
+/// Writes a plain single-colour JPEG (0xRRGGBB) into [paths].root.
+String writeSolidJpeg(
+  StoragePaths paths,
+  int rgb, [
+  String name = 'solid.jpg',
+]) {
+  final image = img.Image(width: 64, height: 64)
+    ..clear(img.ColorRgb8((rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255));
+  final f = File('${paths.root.path}/$name')
+    ..writeAsBytesSync(img.encodeJpg(image));
+  return f.path;
+}
+
 /// Writes a small JPEG into [paths].root and returns its path.
 String writeTestJpeg(StoragePaths paths, [String name = 'photo.jpg']) {
   final f = File('${paths.root.path}/$name')..writeAsBytesSync(jpegBytes());

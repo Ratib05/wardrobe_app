@@ -27,6 +27,20 @@ const _weakness = {
   ScoreFactor.preferences: "Doesn't match your preferences",
 };
 
+/// "Red and green may clash" for the first clashing pair of main colours, so
+/// the note says which colours to look at.
+String _colourClashNote(List<ClothingItem> items) {
+  for (var i = 0; i < items.length; i++) {
+    for (var j = i + 1; j < items.length; j++) {
+      final a = items[i].primaryColour, b = items[j].primaryColour;
+      if (a != null && b != null && coloursClash(a, b)) {
+        return '${a.label} and ${b.label.toLowerCase()} may clash';
+      }
+    }
+  }
+  return _weakness[ScoreFactor.colour]!;
+}
+
 OutfitCheck outfitCheck(
   List<ClothingItem> items, {
   Occasion? occasion,
@@ -54,7 +68,12 @@ OutfitCheck outfitCheck(
       if (factors[f]!.reason != null) (text: factors[f]!.reason!, good: true),
     for (final f in ScoreFactor.values)
       if (_weakness[f] != null && factors[f]!.value < 0.5)
-        (text: _weakness[f]!, good: false),
+        (
+          text: f == ScoreFactor.colour
+              ? _colourClashNote(items)
+              : _weakness[f]!,
+          good: false,
+        ),
   ];
   return OutfitCheck(
     weightSum == 0 ? 0 : (total / weightSum * 100).round(),

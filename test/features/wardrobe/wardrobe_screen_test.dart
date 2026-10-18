@@ -41,7 +41,7 @@ void main() {
     await pumpApp(tester, paths: paths, items: wardrobe);
     expect(find.text('Your wardrobe'), findsOneWidget);
     expect(find.text('4 ITEMS · 0 OUTFITS'), findsOneWidget);
-    expect(find.text('TOPS · SMART CASUAL'), findsOneWidget);
+    expect(find.text('TOPS · WHITE · SMART CASUAL'), findsOneWidget);
   });
 
   testApp('category chips show counts and filter one category', (

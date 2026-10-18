@@ -9,6 +9,7 @@ import 'package:wardrobe_app/core/wardrobe_values.dart';
 import 'package:wardrobe_app/database/app_database.dart';
 
 import '../../helpers.dart';
+import 'package:wardrobe_app/services/storage_paths.dart';
 
 Future<void> openAddForm(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('nav-Wardrobe')));
@@ -170,7 +171,7 @@ void main() {
     expect(paths.tempDir.listSync(), isEmpty);
   });
 
-  testApp('rotating replaces the stored photo with a turned copy', (
+  testPhoto('rotating replaces the stored photo with a turned copy', (
     tester,
     paths,
   ) async {
@@ -303,7 +304,7 @@ void main() {
     size: const Size(420, 800),
   );
 
-  testApp('on a phone, a photo is chosen, cropped, then stored', (
+  testPhoto('on a phone, a photo is chosen, cropped, then stored', (
     tester,
     paths,
   ) async {
@@ -323,7 +324,7 @@ void main() {
     expect((await allItems(tester)).single.imagePath, isNotNull);
   });
 
-  testApp('on a phone, Take photo uses the camera and backing out of the '
+  testPhoto('on a phone, Take photo uses the camera and backing out of the '
       'crop adds nothing', (tester, paths) async {
     final pickers = FakePickers(null)
       ..phone = true
@@ -339,7 +340,10 @@ void main() {
     expect(find.byKey(const Key('staged-photo')), findsNothing);
   });
 
-  testApp('the Crop button re-crops the current photo', (tester, paths) async {
+  testPhoto('the Crop button re-crops the current photo', (
+    tester,
+    paths,
+  ) async {
     File(
       '${paths.clothingImagesDir.path}/a.jpg',
     ).writeAsBytesSync(jpegBytes(width: 200, height: 100));
@@ -360,9 +364,105 @@ void main() {
     expect(pickers.cropped.single, endsWith('a.jpg'));
   });
 
+  testApp('a photo pre-fills its colour as a suggestion', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(
+      tester,
+      paths: paths,
+      pickers: FakePickers(writeSolidJpeg(paths, 0x1F2A44)),
+    );
+    await openAddForm(tester);
+    await tester.tap(find.byKey(const Key('replace-photo')));
+    await pumpUntilFound(tester, find.byKey(const Key('colour-navy')));
+    expect(find.textContaining('suggested from photo'), findsOneWidget);
+    await enterName(tester, 'Tee');
+    await chooseCategory(tester, 'Top');
+    await saveAndWait(tester);
+    expect((await allItems(tester)).single.primaryColour, WardrobeColour.navy);
+  });
+
+  testPhoto('a colour the user chose is not replaced by a suggestion', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(
+      tester,
+      paths: paths,
+      pickers: FakePickers(writeSolidJpeg(paths, 0x1F2A44)),
+    );
+    await openAddForm(tester);
+    await addColour(tester, WardrobeColour.red);
+    await tester.tap(find.byKey(const Key('replace-photo')));
+    await pumpUntilFound(tester, find.byKey(const Key('staged-photo')));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 300)),
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('colour-red')), findsOneWidget);
+    expect(find.byKey(const Key('colour-navy')), findsNothing);
+    expect(find.textContaining('suggested from photo'), findsNothing);
+  });
+
+  testApp('Identify from photo names the tapped colour', (tester, paths) async {
+    await pumpApp(
+      tester,
+      paths: paths,
+      pickers: FakePickers(writeSolidJpeg(paths, 0x6B7A3A)),
+    );
+    await openAddForm(tester);
+    await enterName(tester, 'Olive tee');
+    await chooseCategory(tester, 'Top');
+    await addColour(tester, WardrobeColour.red);
+    await tester.tap(find.byKey(const Key('replace-photo')));
+    await pumpUntilFound(tester, find.byKey(const Key('staged-photo')));
+    await tester.ensureVisible(find.byKey(const Key('identify-colour')));
+    await tester.tap(find.byKey(const Key('identify-colour')));
+    await pumpUntilFound(tester, find.byKey(const Key('identify-photo')));
+    await tester.tap(find.byKey(const Key('identify-photo')));
+    await tester.pump();
+    expect(find.byKey(const Key('identified-colour')), findsOneWidget);
+    expect(find.text('Olive'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('identify-main')));
+    await tester.pumpAndSettle();
+    await saveAndWait(tester);
+    final saved = (await allItems(tester)).single;
+    expect(saved.primaryColour, WardrobeColour.olive);
+    expect(saved.secondaryColours, {WardrobeColour.red});
+  });
+
+  testApp('Identify from photo is disabled without a photo', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths);
+    await openAddForm(tester);
+    await tester.ensureVisible(find.byKey(const Key('identify-colour')));
+    final chip = tester.widget<ActionChip>(
+      find.byKey(const Key('identify-colour')),
+    );
+    expect(chip.onPressed, isNull);
+  });
+
   testApp('desktop has no Crop or Take photo', (tester, paths) async {
     await pumpApp(tester, paths: paths);
     await openAddForm(tester);
     expect(find.byKey(const Key('crop-photo')), findsNothing);
   });
 }
+
+/// Like [testApp], but lets the form's background colour read of its photo
+/// finish first: Windows cannot delete the temp folder while it is open.
+void testPhoto(
+  String description,
+  Future<void> Function(WidgetTester tester, StoragePaths paths) body,
+) => testApp(description, (tester, paths) async {
+  await body(tester, paths);
+  for (var i = 0; i < 8; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 40)),
+    );
+    await tester.pump();
+  }
+});

@@ -48,7 +48,19 @@ void main() {
     final weak = c.notes.where((n) => !n.good).map((n) => n.text);
     expect(
       weak,
-      containsAll(['Colours may clash', 'Formality levels are far apart']),
+      containsAll(['Red and pink may clash', 'Formality levels are far apart']),
+    );
+  });
+
+  test('a red and green clash names both colours', () {
+    final c = outfitCheck([
+      item(id: 'a', primaryColour: WardrobeColour.olive),
+      item(id: 'b', primaryColour: WardrobeColour.red),
+      item(id: 'c', primaryColour: WardrobeColour.green),
+    ]);
+    expect(
+      c.notes.where((n) => !n.good).map((n) => n.text),
+      contains('Red and green may clash'),
     );
   });
 

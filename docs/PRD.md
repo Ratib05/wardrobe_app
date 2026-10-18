@@ -136,7 +136,7 @@ The app must validate a backup before replacing existing data and warn users tha
 ## 5. Out of Scope
 
 The MVP will not include:
-- AI-based clothing recognition.
+- AI-based clothing recognition. (Plain pixel-colour sampling to suggest an item's main colour is not recognition and is included.)
 - AI-generated outfits.
 - Social sharing or public profiles.
 - Multiple user accounts.

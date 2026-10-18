@@ -151,12 +151,14 @@ These constraints may be reconsidered only if the project requirements explicitl
 lib/
 ├── app/          MaterialApp.router, go_router config, adaptive navigation shell,
 │                 Riverpod providers for storage/database/pickers, shared widgets
-├── core/         value lists (enums), ClothingItem, outfit templates, exceptions
+├── core/         value lists (enums), ClothingItem, outfit templates, colour naming
+│                 (colour_match.dart), exceptions
 ├── database/     Drift tables (app_database.dart), DAOs, generated code
 ├── features/
 │   ├── wardrobe, outfits, wishlist, settings (backup screen, preferences)
 │   └── recommendations/engine/   scoring, recommendation engine, gap analysis
-└── services/     StoragePaths, ImageStorage, BackupService, PlatformPickers
+└── services/     StoragePaths, ImageStorage, PhotoColours (photo pixel sampling),
+                  BackupService, PlatformPickers
 ```
 
 - **Layering:** screens read Riverpod providers; providers call repositories; repositories use Drift DAOs. No SQL appears outside `lib/database/`.
