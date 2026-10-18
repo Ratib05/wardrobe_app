@@ -89,3 +89,12 @@ Provide helpful messages when:
 ## 11. Responsive Layout
 
 Windows is the initial target. Layouts should also accommodate narrower screens so that Android support can be added without redesigning the entire application.
+### Phone layouts (width under 640 px)
+
+- **Navigation:** a bottom bar (Wardrobe, Outfits, Suggest, Gaps, Backup). Settings is reached from the icon in the Backup page header.
+- **Wardrobe:** pill search, a filters button, a two-column grid and a floating "+" button.
+- **Add/Edit item:** one column, with Cancel and Save in a bottom bar. Choosing a photo offers Take photo or Choose from gallery, then the crop screen. A Crop button re-crops the current photo; Rotate 90° is also available.
+- **Outfit builder:** one column (slots, picker, outfit check, details).
+- **Suggestions:** the filters sit in a collapsed "Filters" panel, and suggestions are shown one per page with a "1 / N" counter and previous/next arrows (swipe also works).
+- **Gaps & wishlist:** an Ideas / Wishlist switch instead of both sections.
+- **Backup:** tiles and cards stack in one column. Exporting hands the zip to the system save dialog.

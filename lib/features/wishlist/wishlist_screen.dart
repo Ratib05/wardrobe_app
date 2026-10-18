@@ -38,6 +38,9 @@ class WishlistScreen extends ConsumerStatefulWidget {
 class _WishlistScreenState extends ConsumerState<WishlistScreen> {
   WishlistStatus _status = WishlistStatus.planned;
 
+  // Phone layout shows one of the two sections at a time.
+  bool _showIdeas = true;
+
   @override
   Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 640;
@@ -65,26 +68,47 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
               trailing: add,
             ),
             const SizedBox(height: 24),
-            Text('IDEAS', style: monoCaption(context)),
-            const SizedBox(height: 8),
-            const GapIdeas(),
-            const SizedBox(height: 32),
-            Text('YOUR WISHLIST', style: monoCaption(context)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final s in WishlistStatus.values)
-                  ChoiceChip(
-                    key: Key('status-${s.name}'),
-                    label: Text(s.label),
-                    selected: _status == s,
-                    onSelected: (_) => setState(() => _status = s),
-                  ),
+            if (compact) ...[
+              SegmentedButton<bool>(
+                key: const Key('gaps-tabs'),
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: true, label: Text('Ideas')),
+                  ButtonSegment(value: false, label: Text('Wishlist')),
+                ],
+                selected: {_showIdeas},
+                onSelectionChanged: (v) => setState(() => _showIdeas = v.first),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (!compact || _showIdeas) ...[
+              if (!compact) ...[
+                Text('IDEAS', style: monoCaption(context)),
+                const SizedBox(height: 8),
               ],
-            ),
-            const SizedBox(height: 12),
-            _WishlistTable(status: _status, compact: compact),
+              const GapIdeas(),
+            ],
+            if (!compact) const SizedBox(height: 32),
+            if (!compact || !_showIdeas) ...[
+              if (!compact) ...[
+                Text('YOUR WISHLIST', style: monoCaption(context)),
+                const SizedBox(height: 8),
+              ],
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final s in WishlistStatus.values)
+                    ChoiceChip(
+                      key: Key('status-${s.name}'),
+                      label: Text(s.label),
+                      selected: _status == s,
+                      onSelected: (_) => setState(() => _status = s),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _WishlistTable(status: _status, compact: compact),
+            ],
           ],
         ),
       ),

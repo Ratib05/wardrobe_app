@@ -173,6 +173,43 @@ class FakePickers extends PlatformPickers {
 
   final openedFolders = <String>[];
 
+  /// Phone-style behaviour, off by default (the tests run as desktop).
+  bool phone = false;
+  String? cameraPath;
+  String? croppedPath;
+  final cropped = <String>[];
+  Uint8List? savedBytes;
+  String? savedName;
+
+  @override
+  bool get canTakePhoto => phone;
+
+  @override
+  Future<String?> takePhotoPath() async => cameraPath;
+
+  @override
+  bool get canCrop => phone;
+
+  @override
+  Future<String?> cropImage(String path) async {
+    cropped.add(path);
+    return croppedPath;
+  }
+
+  @override
+  bool get exportsAsBytes => phone;
+
+  @override
+  Future<bool> saveBackupBytes(String name, Uint8List bytes) async {
+    if (saveLocation == null) return false;
+    savedName = name;
+    savedBytes = bytes;
+    return true;
+  }
+
+  @override
+  bool get canOpenFolder => true;
+
   @override
   Future<void> openFolder(String path) async => openedFolders.add(path);
 }

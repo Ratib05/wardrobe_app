@@ -47,7 +47,8 @@ Backup and Restore Services
 - Riverpod: state management and dependency injection.
 - go_router: navigation.
 - image_picker: selecting or capturing images where supported.
-- image_cropper: cropping images. It does not support Windows, so it is not used in the Windows MVP and is only an optional addition for Android.
+- image_cropper: cropping images on Android (native crop screen). It does not support Windows, where the app offers Rotate 90° instead.
+- file_picker: saving a backup on Android, where the system save dialog needs the file's bytes (file_selector's save dialog is desktop-only).
 - drift_flutter: opens the Drift database on each platform.
 - image: decoding, rotating, resizing and re-encoding photos (pure Dart, offline).
 - file_selector and archive: choosing backup locations and creating or extracting backup ZIP files.

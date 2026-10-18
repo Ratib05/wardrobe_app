@@ -329,4 +329,39 @@ void main() {
       isEmpty,
     );
   });
+
+  testApp('on a phone the backup is handed to the save dialog as bytes', (
+    tester,
+    paths,
+  ) async {
+    final pickers = FakePickers(null, saveLocation: 'unused')..phone = true;
+    await pumpApp(tester, paths: paths, items: existing, pickers: pickers);
+    await openBackup(tester);
+    await tapScrolled(tester, find.text('Back up wardrobe'));
+    await pumpUntilFound(tester, find.text('Backup saved'));
+    expect(pickers.savedName, startsWith('wardrobe-backup-'));
+    // A real zip, and no temporary export left behind.
+    expect(String.fromCharCodes(pickers.savedBytes!.take(2)), 'PK');
+    expect(
+      paths.tempDir.listSync().where(
+        (e) => p.basename(e.path).startsWith('export-'),
+      ),
+      isEmpty,
+    );
+    await pumpUntilFound(tester, find.textContaining('wardrobe-backup-'));
+    expect(find.textContaining('File not found'), findsNothing);
+  });
+
+  testApp('cancelling the phone save dialog records nothing', (
+    tester,
+    paths,
+  ) async {
+    final pickers = FakePickers(null)..phone = true; // saveLocation null
+    await pumpApp(tester, paths: paths, items: existing, pickers: pickers);
+    await openBackup(tester);
+    await tapScrolled(tester, find.text('Back up wardrobe'));
+    await pumpUntilGone(tester, find.byType(LinearProgressIndicator));
+    expect(find.text('Backup saved'), findsNothing);
+    expect(find.text('No backups made yet.'), findsOneWidget);
+  });
 }

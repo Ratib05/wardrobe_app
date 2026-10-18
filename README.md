@@ -26,7 +26,8 @@ A private, local-first wardrobe management application built with Flutter and Da
 | go_router | Navigation |
 | path_provider | Local application storage paths |
 | image_picker | Image selection |
-| image_cropper | Image cropping (Android only; not supported on Windows, so optional) |
+| image_cropper | Image cropping (Android only; not supported on Windows, which has Rotate 90° instead) |
+| file_picker | Saving backups through the Android system save dialog |
 | image | Photo processing: rotate, resize, strip metadata |
 | file_selector, archive | Backup export/import and ZIP handling |
 | flutter_test | Unit and widget testing |
@@ -153,7 +154,7 @@ For Android, once Android support is configured and a device or emulator is avai
 flutter run -d android
 ```
 
-Only the Windows target is configured at present. The Android target is added in the final development phase (see `docs/ROADMAP.md`).
+Windows and Android are both configured. The Android build compiles (`flutter build apk`); camera, cropping and the backup save dialog still need a check on a real device or emulator (see `docs/ROADMAP.md`).
 
 ## Development Workflow
 
@@ -207,7 +208,7 @@ wardrobe_app/
 └── .gitignore
 ```
 
-Android support (an `android/` folder) is added in the final development phase.
+The `android/` folder holds the Android platform. Its manifest has no INTERNET permission and disables Android's automatic cloud backup and device transfer, so the wardrobe only leaves the device through the in-app backup.
 
 ## Documentation
 
@@ -230,9 +231,9 @@ Instructions and architectural constraints for AI coding assistants are kept in 
 
 ## Current Status
 
-**Status:** Windows MVP implemented and tested; Android support not started.
+**Status:** Windows MVP implemented and tested; Android support implemented and built, awaiting a device test.
 
-Wardrobe management, outfits, rule-based recommendations, wardrobe gap analysis, the wishlist, and backup and restore are implemented, with unit, widget and integration tests. The MVP is being used with a real wardrobe before Android work begins. Features should be considered implemented only when the corresponding functionality and tests are in place.
+Wardrobe management, outfits, rule-based recommendations, wardrobe gap analysis, the wishlist, and backup and restore are implemented, with unit, widget and integration tests. The Android target was added after the Windows MVP. Features should be considered implemented only when the corresponding functionality and tests are in place.
 
 ## Future Plans
 

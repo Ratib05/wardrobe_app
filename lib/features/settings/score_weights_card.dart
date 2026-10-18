@@ -78,7 +78,10 @@ class _ScoreWeightsCardState extends ConsumerState<ScoreWeightsCard> {
             for (final f in ScoreFactor.values)
               Row(
                 children: [
-                  SizedBox(width: 140, child: Text(_labels[f]!)),
+                  SizedBox(
+                    width: MediaQuery.sizeOf(context).width < 640 ? 96 : 140,
+                    child: Text(_labels[f]!, maxLines: 2),
+                  ),
                   Expanded(
                     child: Slider(
                       key: Key('weight-${f.name}'),
@@ -91,7 +94,7 @@ class _ScoreWeightsCardState extends ConsumerState<ScoreWeightsCard> {
                     ),
                   ),
                   SizedBox(
-                    width: 48,
+                    width: 36,
                     child: Text(
                       total == 0
                           ? '0'
@@ -104,14 +107,15 @@ class _ScoreWeightsCardState extends ConsumerState<ScoreWeightsCard> {
                 ],
               ),
             const SizedBox(height: 8),
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
               children: [
                 FilledButton(
                   key: const Key('save-weights'),
                   onPressed: _draft == null ? null : _save,
                   child: const Text('Save weights'),
                 ),
-                const SizedBox(width: 12),
                 OutlinedButton(
                   key: const Key('reset-weights'),
                   onPressed: _reset,

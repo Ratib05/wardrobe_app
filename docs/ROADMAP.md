@@ -11,7 +11,7 @@
 | 5. Wardrobe gap analysis and wishlist | Done |
 | 6. Backup and restore | Done |
 | 7. Polish and testing | Done in code; the Windows build is being used with a real wardrobe before Phase 8 |
-| 8. Android support | Not started |
+| 8. Android support | Built and tested in code; needs a run on a real device or emulator |
 
 ## Phase 1: Project Setup
 
@@ -92,6 +92,10 @@
 - Validate Android storage behaviour.
 - Test backup and restore on mobile.
 - Fix platform-specific issues.
+
+**Implemented:** the `android/` platform; cropping after picking or taking a photo (and a Crop button on an existing photo) with `image_cropper`; Take photo / Choose from gallery; backup export through the system save dialog (`file_picker`, whole zip in memory); no `INTERNET` permission and no Android cloud backup or device transfer of app data; phone layouts (bottom bar, filter button, floating add button, one-at-a-time suggestions, Ideas/Wishlist tabs, Settings reached from the Backup page). Widget tests cover the phone behaviour with a fake picker.
+
+**Still to verify by hand:** the camera, crop screen and save dialog on a real device, and a backup made on the phone restoring on Windows (and back).
 
 **Completion criteria:** Core features work on Android using the same codebase.
 

@@ -47,9 +47,17 @@ void main() {
       'sentry',
       'crashlytics',
       'analytics',
-      'image_cropper:', // not supported on Windows; Android-only if ever added
     ]) {
       expect(dependencies.contains(name), isFalse, reason: name);
     }
+  });
+
+  test('the Android app asks for no network access and opts out of backup', () {
+    final manifest = File(
+      'android/app/src/main/AndroidManifest.xml',
+    ).readAsStringSync();
+    expect(manifest, isNot(contains('android.permission.INTERNET')));
+    expect(manifest, contains('android:allowBackup="false"'));
+    expect(manifest, contains('android:dataExtractionRules'));
   });
 }

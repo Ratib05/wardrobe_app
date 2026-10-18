@@ -201,14 +201,15 @@ class RecommendationCard extends StatelessWidget {
                 ],
               ),
             ),
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
               children: [
                 OutlinedButton(
                   key: const Key('not-for-me'),
                   onPressed: onDismiss,
                   child: const Text('Not for me'),
                 ),
-                const SizedBox(width: 12),
                 FilledButton.icon(
                   key: const Key('save-outfit'),
                   onPressed: saved ? null : onSave,

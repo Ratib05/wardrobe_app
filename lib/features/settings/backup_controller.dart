@@ -36,18 +36,45 @@ class BackupController {
 
   /// Returns null when the user cancels the save dialog.
   Future<BackupResult?> backup() async {
-    final path = await _ref
-        .read(platformPickersProvider)
-        .chooseBackupSaveLocation(suggestedFileName(DateTime.now()));
-    if (path == null) return null;
-    final result = await _service.createBackup(
-      _ref.read(appDatabaseProvider),
-      path,
-    );
-    BackupHistory(_ref.read(storagePathsProvider).backupHistoryFile).add(
+    final pickers = _ref.read(platformPickersProvider);
+    final paths = _ref.read(storagePathsProvider);
+    final name = suggestedFileName(DateTime.now());
+    final BackupResult result;
+    final int size;
+    if (pickers.exportsAsBytes) {
+      // Android: build the zip in temporary/, then hand its bytes to the
+      // system save dialog.
+      // ponytail: the whole zip is held in memory; fine for a personal
+      // wardrobe (photos are capped at 1600px). Stream it if backups ever
+      // reach hundreds of MB.
+      final temp = File(p.join(paths.tempDir.path, 'export-$name'));
+      try {
+        final made = await _service.createBackup(
+          _ref.read(appDatabaseProvider),
+          temp.path,
+        );
+        final bytes = await temp.readAsBytes();
+        if (!await pickers.saveBackupBytes(name, bytes)) return null;
+        // The real location is a content URI the app cannot reopen, so only
+        // the file name is remembered.
+        result = BackupResult(name, made.counts, made.missingImages);
+        size = bytes.length;
+      } finally {
+        if (temp.existsSync()) temp.deleteSync();
+      }
+    } else {
+      final path = await pickers.chooseBackupSaveLocation(name);
+      if (path == null) return null;
+      result = await _service.createBackup(
+        _ref.read(appDatabaseProvider),
+        path,
+      );
+      size = File(result.path).lengthSync();
+    }
+    BackupHistory(paths.backupHistoryFile).add(
       BackupRecord(
         path: result.path,
-        sizeBytes: File(result.path).lengthSync(),
+        sizeBytes: size,
         createdAt: DateTime.now(),
       ),
     );

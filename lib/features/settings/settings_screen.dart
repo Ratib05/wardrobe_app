@@ -48,7 +48,12 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => Scaffold(
     body: SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(40, 32, 40, 24),
+      padding: EdgeInsets.fromLTRB(
+        MediaQuery.sizeOf(context).width < 640 ? 16 : 40,
+        MediaQuery.sizeOf(context).width < 640 ? 16 : 32,
+        MediaQuery.sizeOf(context).width < 640 ? 16 : 40,
+        24,
+      ),
       child: Align(
         alignment: Alignment.topLeft,
         child: ConstrainedBox(

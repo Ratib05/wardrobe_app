@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:path/path.dart' as p;
 
@@ -189,7 +190,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
             ),
             subtitle: Text(
               '${_date(r.createdAt)} · ${_size(r.sizeBytes)}'
-              '${File(r.path).existsSync() ? '' : ' · File not found'}',
+              // Android exports are remembered by name only; nothing to check.
+              '${!p.isAbsolute(r.path) || File(r.path).existsSync() ? '' : ' · File not found'}',
             ),
           ),
       ],
@@ -219,9 +221,19 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const PageHeader(
+                PageHeader(
                   eyebrow: 'Stored on this device',
                   title: 'Backup & restore',
+                  compact: compact,
+                  // On a phone the bottom bar has no Settings entry.
+                  trailing: compact
+                      ? IconButton.outlined(
+                          key: const Key('open-settings'),
+                          tooltip: 'Settings',
+                          icon: const Icon(Icons.settings_outlined),
+                          onPressed: () => context.go('/settings'),
+                        )
+                      : null,
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
@@ -283,14 +295,15 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                           children: [
                             SelectableText(paths.root.path),
                             const SizedBox(height: 4),
-                            TextButton.icon(
-                              key: const Key('open-folder'),
-                              onPressed: () => ref
-                                  .read(platformPickersProvider)
-                                  .openFolder(paths.root.path),
-                              icon: const Icon(Icons.folder_open, size: 18),
-                              label: const Text('Open folder'),
-                            ),
+                            if (ref.read(platformPickersProvider).canOpenFolder)
+                              TextButton.icon(
+                                key: const Key('open-folder'),
+                                onPressed: () => ref
+                                    .read(platformPickersProvider)
+                                    .openFolder(paths.root.path),
+                                icon: const Icon(Icons.folder_open, size: 18),
+                                label: const Text('Open folder'),
+                              ),
                           ],
                         ),
                       ),

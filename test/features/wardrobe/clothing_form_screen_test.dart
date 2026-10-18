@@ -302,4 +302,67 @@ void main() {
     },
     size: const Size(420, 800),
   );
+
+  testApp('on a phone, a photo is chosen, cropped, then stored', (
+    tester,
+    paths,
+  ) async {
+    final pickers = FakePickers(writeTestJpeg(paths, 'gallery.jpg'))
+      ..phone = true
+      ..croppedPath = writeTestJpeg(paths, 'cropped.jpg');
+    await pumpApp(tester, paths: paths, pickers: pickers);
+    await openAddForm(tester);
+    await tester.tap(find.byKey(const Key('replace-photo')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('choose-from-gallery')));
+    await pumpUntilFound(tester, find.byKey(const Key('staged-photo')));
+    expect(pickers.cropped, [pickers.imagePath]);
+    await enterName(tester, 'Tee');
+    await chooseCategory(tester, 'Top');
+    await saveAndWait(tester);
+    expect((await allItems(tester)).single.imagePath, isNotNull);
+  });
+
+  testApp('on a phone, Take photo uses the camera and backing out of the '
+      'crop adds nothing', (tester, paths) async {
+    final pickers = FakePickers(null)
+      ..phone = true
+      ..cameraPath = writeTestJpeg(paths, 'camera.jpg')
+      ..croppedPath = null;
+    await pumpApp(tester, paths: paths, pickers: pickers);
+    await openAddForm(tester);
+    await tester.tap(find.byKey(const Key('replace-photo')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('take-photo')));
+    await tester.pumpAndSettle();
+    expect(pickers.cropped, [pickers.cameraPath]);
+    expect(find.byKey(const Key('staged-photo')), findsNothing);
+  });
+
+  testApp('the Crop button re-crops the current photo', (tester, paths) async {
+    File(
+      '${paths.clothingImagesDir.path}/a.jpg',
+    ).writeAsBytesSync(jpegBytes(width: 200, height: 100));
+    final pickers = FakePickers(null)
+      ..phone = true
+      ..croppedPath = writeTestJpeg(paths, 'cropped.jpg');
+    await pumpApp(
+      tester,
+      paths: paths,
+      pickers: pickers,
+      items: [
+        item(id: 'p', name: 'Photo tee', imagePath: 'images/clothing/a.jpg'),
+      ],
+    );
+    await openItem(tester, 'Photo tee');
+    await tester.tap(find.byKey(const Key('crop-photo')));
+    await pumpUntilFound(tester, find.byKey(const Key('staged-photo')));
+    expect(pickers.cropped.single, endsWith('a.jpg'));
+  });
+
+  testApp('desktop has no Crop or Take photo', (tester, paths) async {
+    await pumpApp(tester, paths: paths);
+    await openAddForm(tester);
+    expect(find.byKey(const Key('crop-photo')), findsNothing);
+  });
 }

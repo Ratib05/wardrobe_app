@@ -98,7 +98,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
     );
   }
 
-  Widget _filterBar(List<ClothingItem> items) {
+  Widget _filterBar(List<ClothingItem> items, {required bool compact}) {
     final choosable = [
       for (final i in items)
         if (i.isAvailable) i,
@@ -120,7 +120,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
       ),
     );
     const any = Text('Any');
-    return Card(
+    final bar = Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -209,6 +209,97 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
         ),
       ),
     );
+    if (!compact) return bar;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ExpansionTile(
+        key: const Key('filters-tile'),
+        shape: const Border(),
+        collapsedShape: const Border(),
+        title: const Text('Filters'),
+        childrenPadding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+        children: [bar],
+      ),
+    );
+  }
+
+  final _pageController = PageController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  /// Phone layout: one suggestion per page, swipe or use the arrows.
+  Widget _pager(RecommendationResults r) {
+    final count = r.recommendations.length;
+    return Column(
+      children: [
+        Expanded(
+          child: PageView.builder(
+            key: const Key('suggestion-pager'),
+            controller: _pageController,
+            itemCount: count,
+            onPageChanged: (i) => setState(() => _page = i),
+            itemBuilder: (context, i) {
+              final rec = r.recommendations[i];
+              return SingleChildScrollView(
+                child: RecommendationCard(
+                  key: ValueKey(rec.fingerprint),
+                  recommendation: rec,
+                  rank: i + 1,
+                  saved: r.savedFingerprints.contains(rec.fingerprint),
+                  onSave: () => _save(rec, favourite: false),
+                  onFavourite: () => _save(rec, favourite: true),
+                  onRate: (n) => _rate(rec, n),
+                  onDismiss: () => _dismiss(rec),
+                ),
+              );
+            },
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              tooltip: 'Previous suggestion',
+              onPressed: _page > 0
+                  ? () => _pageController.previousPage(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOut,
+                    )
+                  : null,
+              icon: const Icon(Icons.chevron_left),
+            ),
+            Text(
+              '${(_page + 1).clamp(1, count)} / $count',
+              key: const Key('pager-position'),
+              style: monoCaption(context),
+            ),
+            IconButton(
+              tooltip: 'Next suggestion',
+              onPressed: _page < count - 1
+                  ? () => _pageController.nextPage(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOut,
+                    )
+                  : null,
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text(
+            'Scores use fixed rules and weights — no data leaves this device.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.muted, fontSize: 12),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -236,7 +327,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
               compact: compact,
             ),
             const SizedBox(height: 16),
-            _filterBar(items),
+            _filterBar(items, compact: compact),
             Expanded(
               child: results.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -254,6 +345,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                       ),
                     );
                   }
+                  if (compact) return _pager(r);
                   return ListView.builder(
                     itemCount: r.recommendations.length + 1,
                     itemBuilder: (context, i) {

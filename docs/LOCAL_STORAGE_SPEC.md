@@ -122,7 +122,7 @@ Clothing management, outfit creation, recommendations, wishlist management, and 
 - Photo import (`lib/services/image_storage.dart`): files over 50 MB are rejected; the image is decoded, rotated upright from its EXIF orientation, shrunk to at most 1600 px on the longest side, stripped of all metadata (including GPS location) and saved as a JPEG (quality 85) in `temporary/`. Saving the item moves it into `images/clothing/` under a new UUID name; a new name per photo version avoids stale image caches.
 - Unsupported images produce "This image format isn't supported. Use a JPEG, PNG or WebP photo."
 - The old photo file is deleted only after the database write succeeds. If the write fails, the new photo is removed.
-- `image_cropper` does not support Windows, so the Windows build has no cropping; grids show a centred crop.
+- Android: after a photo is taken or chosen, a native crop screen lets the user frame the garment (`image_cropper`); a Crop button re-crops the current photo. The cropped file then goes through the same pipeline. `image_cropper` does not support Windows, so Windows has no cropping (it has Rotate 90°); grids show a centred crop.
 
 ## 12. Implemented Backup and Restore (version 1)
 
@@ -162,7 +162,7 @@ The confirmation dialog shows the current record counts, the backup's date and c
 Database size, photo size and count (with missing photos), the data folder with an **Open folder** button (Windows), an export card (suggested file name, approximate size, Back up wardrobe), a restore card (with the safety-copy note) and a Recent backups list that includes safety copies (a file that has since been moved shows "File not found"). Buttons are disabled and a progress bar is shown while a backup or restore runs. Recommendation settings live on the separate Settings page.
 
 ### Limitations
-- The save and open dialogs use `file_selector`, which supports Windows, macOS and Linux. Android needs a different export route (see the roadmap, Phase 8).
+- Windows uses `file_selector` for the save and open dialogs. On Android, which has no save dialog that returns a writable path, the backup is built in `temporary/` and its bytes are handed to the system save dialog (`file_picker`); the history then remembers only the file name. The restore picker still uses `file_selector`. The whole zip is held in memory during export.
 - A backup stored only on the same device is lost with the device; the Settings screen reminds the user next to the Back up button.
 
 ## 13. Additional Local Files

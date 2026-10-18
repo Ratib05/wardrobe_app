@@ -177,8 +177,43 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
   }
 
   Future<void> _pickPhoto() async {
-    final path = await ref.read(platformPickersProvider).pickImagePath();
+    final pickers = ref.read(platformPickersProvider);
+    var camera = false;
+    if (pickers.canTakePhoto) {
+      final choice = await showModalBottomSheet<bool>(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                key: const Key('take-photo'),
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text('Take photo'),
+                onTap: () => Navigator.pop(context, true),
+              ),
+              ListTile(
+                key: const Key('choose-from-gallery'),
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Choose from gallery'),
+                onTap: () => Navigator.pop(context, false),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (choice == null) return;
+      camera = choice;
+    }
+    var path = camera
+        ? await pickers.takePhotoPath()
+        : await pickers.pickImagePath();
+    if (path != null && pickers.canCrop) path = await pickers.cropImage(path);
     if (path == null) return;
+    await _stagePath(path);
+  }
+
+  Future<void> _stagePath(String path) async {
     try {
       final staged = await _images.stage(path);
       await _replaceStaged(staged);
@@ -187,6 +222,24 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
     } catch (e) {
       if (mounted) _snack('Could not read that image: $e');
     }
+  }
+
+  File? get _currentPhotoFile {
+    final existing = _existing;
+    return _staged ??
+        (existing?.imagePath != null && !_removePhoto
+            ? _images.fileFor(existing!.imagePath)
+            : null);
+  }
+
+  /// Crops the current photo again (Android).
+  Future<void> _cropPhoto() async {
+    final source = _currentPhotoFile;
+    if (source == null || !source.existsSync()) return;
+    final cropped = await ref
+        .read(platformPickersProvider)
+        .cropImage(source.path);
+    if (cropped != null) await _stagePath(cropped);
   }
 
   Future<void> _replaceStaged(File staged) async {
@@ -648,6 +701,15 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
         ),
       ),
       const SizedBox(width: 8),
+      if (ref.read(platformPickersProvider).canCrop) ...[
+        IconButton.outlined(
+          key: const Key('crop-photo'),
+          tooltip: 'Crop',
+          icon: const Icon(Icons.crop),
+          onPressed: _hasPhoto ? _cropPhoto : null,
+        ),
+        const SizedBox(width: 8),
+      ],
       IconButton.outlined(
         key: const Key('rotate-photo'),
         tooltip: 'Rotate 90°',

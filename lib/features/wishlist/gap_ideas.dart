@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -104,7 +106,7 @@ class _IdeaCard extends StatelessWidget {
             child: const Text('Add to wishlist'),
           );
     return SizedBox(
-      width: 340,
+      width: math.min(340, MediaQuery.sizeOf(context).width - 32),
       child: Card(
         key: Key('gap-${s.key}'),
         margin: EdgeInsets.zero,
