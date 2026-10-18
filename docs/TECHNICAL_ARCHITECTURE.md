@@ -152,7 +152,8 @@ lib/
 ├── app/          MaterialApp.router, go_router config, adaptive navigation shell,
 │                 Riverpod providers for storage/database/pickers, shared widgets
 ├── core/         value lists (enums), ClothingItem, outfit templates, colour naming
-│                 (colour_match.dart), exceptions
+│                 (colour_match.dart), keyword suggestions (item_suggestions.dart),
+│                 exceptions
 ├── database/     Drift tables (app_database.dart), DAOs, generated code
 ├── features/
 │   ├── wardrobe, outfits, wishlist, settings (backup screen, preferences)

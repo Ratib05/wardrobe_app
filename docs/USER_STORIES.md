@@ -5,6 +5,7 @@
 - As a user, I want to add clothing with a photo so I can recognise items quickly.
 - As a user, I want to import many photos at once so I can catalogue my wardrobe quickly, then find the items that still need details.
 - As someone who is red-green colour blind, I want the app to name the colour of an item from its photo, show colour names next to swatches, and say which colours clash in an outfit, so I can trust what I choose without judging colours by eye.
+- As someone who is unsure what style or formality a piece of clothing is, I want the app to suggest formality, style and occasions from its name and to explain each level in plain words, so I can fill in details with confidence and still correct anything.
 - As a user, I want to record clothing attributes so I can filter and organise my wardrobe.
 - As a user, I want to edit item details when something changes.
 - As a user, I want to archive items I no longer wear without permanently deleting them.

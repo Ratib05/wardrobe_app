@@ -100,7 +100,7 @@ Recommendations should explain why an outfit was suggested. Wardrobe gap analysi
 - No mandatory accounts or internet connection.
 - No cloud database or backend server.
 - No external AI APIs or machine-learning dependencies.
-- No automatic clothing recognition. (The edit form does suggest an item's main colour by sampling the pixels of its own photo against a fixed colour table; it does not identify what the item is.)
+- No automatic clothing recognition. (The edit form does suggest an item's main colour by sampling the pixels of its own photo against a fixed colour table; it does not identify what the item is. It also suggests formality, style and occasions from the words in the item's name, using a fixed keyword table.)
 - Explainable outfit recommendations.
 - Explicit user control over backups and restoration.
 

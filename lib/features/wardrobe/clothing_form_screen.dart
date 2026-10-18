@@ -13,12 +13,14 @@ import '../../app/widgets/garment_silhouette.dart';
 import '../../app/widgets/page_header.dart';
 import '../../core/app_exceptions.dart';
 import '../../core/clothing_item.dart';
+import '../../core/item_suggestions.dart';
 import '../../core/wardrobe_values.dart';
 import '../../services/image_storage.dart';
 import '../../services/photo_colours.dart';
 import '../wishlist/wishlist_providers.dart';
 import 'item_stats_provider.dart';
 import 'wardrobe_providers.dart';
+import 'widgets/details_guide.dart';
 import 'widgets/identify_colour_dialog.dart';
 
 const _months = [
@@ -38,7 +40,7 @@ const _months = [
 
 /// Fields the form can fill in as a suggestion; the user's own change to a
 /// field removes it from the suggested set, so it is never overwritten.
-enum _Field { colours }
+enum _Field { colours, formality, styles, occasions }
 
 /// Add a new item, or edit the item with [itemId].
 class ClothingFormScreen extends ConsumerStatefulWidget {
@@ -118,7 +120,44 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
       _styles = {...w.styleTags};
       _formality = w.formality;
     });
+    _suggestDetails();
   }
+
+  /// Fills formality, styles and occasions from the name and type. Only
+  /// fields that are empty, or that were themselves suggested, are touched;
+  /// anything the user set is left alone.
+  void _suggestDetails() {
+    final s = suggestDetails(
+      _name.text,
+      type: _text(_subcategory),
+      category: _category,
+    );
+    setState(() {
+      if (_formality == null || _suggested.contains(_Field.formality)) {
+        _formality = s.formality;
+        _markSuggested(_Field.formality, s.formality != null);
+      }
+      if (_styles.isEmpty || _suggested.contains(_Field.styles)) {
+        _styles = {...s.styles};
+        _markSuggested(_Field.styles, s.styles.isNotEmpty);
+      }
+      if (_occasions.isEmpty || _suggested.contains(_Field.occasions)) {
+        // A formality the user picked decides the occasions; otherwise the
+        // name's own rule does.
+        final chosen =
+            _formality != null && !_suggested.contains(_Field.formality);
+        final occasions = chosen ? occasionsFor(_formality!) : s.occasions;
+        _occasions = {...occasions};
+        _markSuggested(_Field.occasions, occasions.isNotEmpty);
+      }
+    });
+  }
+
+  void _markSuggested(_Field field, bool on) =>
+      on ? _suggested.add(field) : _suggested.remove(field);
+
+  String? _suggestedHint(_Field field, String source) =>
+      _suggested.contains(field) ? '· suggested from $source' : null;
 
   @override
   void dispose() {
@@ -166,6 +205,7 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
       _hidden = item.hideFromSuggestions;
     });
     if (_colours.isEmpty) _suggestColour();
+    _suggestDetails();
   }
 
   /// True while the colours are empty or were only suggested by the app.
@@ -500,10 +540,12 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
     String? hint,
     String? error,
     int maxLines = 1,
+    ValueChanged<String>? onChanged,
   }) => TextField(
     key: fieldKey,
     controller: c,
     maxLines: maxLines,
+    onChanged: onChanged,
     decoration: InputDecoration(hintText: hint, errorText: error),
   );
 
@@ -517,10 +559,13 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
       for (final c in ClothingCategory.values)
         DropdownMenuItem(value: c, child: Text(c.label)),
     ],
-    onChanged: (c) => setState(() {
-      _category = c;
-      _categoryError = null;
-    }),
+    onChanged: (c) {
+      setState(() {
+        _category = c;
+        _categoryError = null;
+      });
+      _suggestDetails();
+    },
   );
 
   Widget _colourSection() => _labeled(
@@ -565,6 +610,25 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
         ),
       ],
     ),
+  );
+
+  /// What the selected formality means, with a button for the full guide.
+  Widget _formalityGuide() => Row(
+    children: [
+      Expanded(
+        child: Text(
+          _formality?.guide ?? 'Not sure? Tap the help button for a guide.',
+          key: const Key('formality-guide'),
+          style: const TextStyle(fontSize: 12, color: AppColors.muted),
+        ),
+      ),
+      IconButton(
+        key: const Key('details-guide'),
+        tooltip: 'What do these mean?',
+        icon: const Icon(Icons.help_outline),
+        onPressed: () => showDetailsGuide(context),
+      ),
+    ],
   );
 
   Widget _moreDetails() => Theme(
@@ -643,13 +707,17 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
               _name,
               fieldKey: const Key('name-field'),
               error: _nameError,
+              onChanged: (_) => _suggestDetails(),
             ),
           ),
           _labeled('Category', _categoryDropdown()),
         ),
         gap,
         pair(
-          _labeled('Type', _textField(_subcategory)),
+          _labeled(
+            'Type',
+            _textField(_subcategory, onChanged: (_) => _suggestDetails()),
+          ),
           _labeled(
             'Brand',
             hint: 'Optional',
@@ -665,17 +733,35 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
         gap,
         _labeled(
           'Formality',
-          _Segmented<Formality>(
-            values: Formality.values,
-            label: (f) => f.label,
-            selected: _formality,
-            onChanged: (f) => setState(() => _formality = f),
+          hint: _suggestedHint(_Field.formality, 'name'),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Segmented<Formality>(
+                values: Formality.values,
+                label: (f) => f.label,
+                selected: _formality,
+                onChanged: (f) {
+                  setState(() {
+                    _suggested.remove(_Field.formality);
+                    _formality = f;
+                  });
+                  // Clearing it must not bring the name's suggestion back.
+                  if (f != null) _suggestDetails();
+                },
+              ),
+              _formalityGuide(),
+            ],
           ),
         ),
         gap,
         _labeled(
           'Style',
-          _multi<StyleTag>(StyleTag.values, _styles, (v) => _styles = v),
+          hint: _suggestedHint(_Field.styles, 'name'),
+          _multi<StyleTag>(StyleTag.values, _styles, (v) {
+            _styles = v;
+            _suggested.remove(_Field.styles);
+          }),
         ),
         gap,
         _labeled(
@@ -685,7 +771,11 @@ class _ClothingFormScreenState extends ConsumerState<ClothingFormScreen> {
         gap,
         _labeled(
           'Occasions',
-          _multi<Occasion>(Occasion.values, _occasions, (v) => _occasions = v),
+          hint: _suggestedHint(_Field.occasions, 'formality'),
+          _multi<Occasion>(Occasion.values, _occasions, (v) {
+            _occasions = v;
+            _suggested.remove(_Field.occasions);
+          }),
         ),
         gap,
         _labeled('Notes', _textField(_notes, maxLines: 3)),

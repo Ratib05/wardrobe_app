@@ -59,14 +59,31 @@ enum WardrobeColour {
 
 /// Ordered from least to most formal.
 enum Formality {
-  relaxed('Relaxed'),
-  casual('Casual'),
-  smartCasual('Smart casual'),
-  smart('Smart'),
-  formal('Formal');
+  relaxed(
+    'Relaxed',
+    'Comfort first: hoodies, joggers, sliders, pyjamas. Fine at home, '
+        'not for the office.',
+  ),
+  casual('Casual', 'Everyday basics: T-shirts, jeans, shorts, trainers.'),
+  smartCasual(
+    'Smart casual',
+    'A step up from casual: collared shirts, polos, chinos, knitwear, '
+        'loafers or clean trainers. No tie.',
+  ),
+  smart(
+    'Smart',
+    'Office-ready: blazers, tailored trousers, dress shirts, dress shoes.',
+  ),
+  formal(
+    'Formal',
+    'Weddings and black-tie: suits with ties, tuxedos, gowns, polished shoes.',
+  );
 
-  const Formality(this.label);
+  const Formality(this.label, this.guide);
   final String label;
+
+  /// One plain sentence on what belongs at this level.
+  final String guide;
 }
 
 enum Season {
@@ -93,17 +110,36 @@ enum Occasion {
 }
 
 enum StyleTag {
-  classic('Classic'),
-  minimal('Minimal'),
-  smart('Smart'),
-  relaxed('Relaxed'),
-  sporty('Sporty'),
-  streetwear('Streetwear'),
-  vintage('Vintage'),
-  bold('Bold');
+  classic(
+    'Classic',
+    'Timeless shapes that never date: oxford shirts, chinos, trench coats, '
+        'plain knits.',
+  ),
+  minimal(
+    'Minimal',
+    'Plain colours and clean lines, with no logos or busy patterns.',
+  ),
+  smart(
+    'Smart',
+    'Sharp and tailored: blazers, fitted trousers, polished shoes.',
+  ),
+  relaxed('Relaxed', 'Loose and comfortable: soft fabrics, easy fits.'),
+  sporty(
+    'Sporty',
+    'Athletic looks: trainers, joggers, tracksuits, technical fabrics.',
+  ),
+  streetwear(
+    'Streetwear',
+    'Urban casual: graphic tees, hoodies, cargos, caps, chunky trainers.',
+  ),
+  vintage('Vintage', 'Retro or older-era looks: classic denim, retro prints.'),
+  bold('Bold', 'Stand-out colours, loud prints or unusual shapes.');
 
-  const StyleTag(this.label);
+  const StyleTag(this.label, this.guide);
   final String label;
+
+  /// One plain sentence on what this style looks like.
+  final String guide;
 }
 
 enum ClothingPattern {

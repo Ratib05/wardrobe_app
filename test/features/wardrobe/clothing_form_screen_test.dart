@@ -445,6 +445,111 @@ void main() {
     expect(chip.onPressed, isNull);
   });
 
+  testApp('typing a name suggests formality, style and occasions', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths);
+    await openAddForm(tester);
+    await chooseCategory(tester, 'Top');
+    await enterName(tester, 'White oxford shirt');
+    await tester.pump();
+    await tester.ensureVisible(find.byKey(const Key('formality-guide')));
+    expect(find.textContaining('suggested from name'), findsNWidgets(2));
+    expect(
+      find.text(Formality.smartCasual.guide),
+      findsOneWidget,
+      reason: 'the guide for the suggested level is shown',
+    );
+    await saveAndWait(tester);
+    final saved = (await allItems(tester)).single;
+    expect(saved.formality, Formality.smartCasual);
+    expect(saved.styleTags, {StyleTag.classic});
+    expect(saved.occasions, {Occasion.casual, Occasion.work});
+  });
+
+  testApp('a formality the user picked is not overwritten', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths);
+    await openAddForm(tester);
+    await chooseCategory(tester, 'Top');
+    await tester.ensureVisible(find.byKey(const Key('segment-smart')));
+    await tester.tap(find.byKey(const Key('segment-smart')));
+    await tester.pump();
+    await tester.ensureVisible(find.byKey(const Key('name-field')));
+    await enterName(tester, 'Black hoodie');
+    await tester.pump();
+    await saveAndWait(tester);
+    final saved = (await allItems(tester)).single;
+    expect(saved.formality, Formality.smart);
+    // Occasions follow the formality the user chose, not the hoodie rule.
+    expect(saved.occasions, {Occasion.work, Occasion.party});
+  });
+
+  testApp('picking a formality fills empty occasions', (tester, paths) async {
+    await pumpApp(tester, paths: paths);
+    await openAddForm(tester);
+    await enterName(tester, 'Mystery item');
+    await chooseCategory(tester, 'Top');
+    await tester.ensureVisible(find.byKey(const Key('segment-formal')));
+    await tester.tap(find.byKey(const Key('segment-formal')));
+    await tester.pump();
+    expect(find.textContaining('suggested from formality'), findsOneWidget);
+    await saveAndWait(tester);
+    final saved = (await allItems(tester)).single;
+    expect(saved.occasions, {Occasion.work, Occasion.formal});
+  });
+
+  testApp('changing a suggested field makes it the user\'s own', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths);
+    await openAddForm(tester);
+    await chooseCategory(tester, 'Top');
+    await enterName(tester, 'Blue jeans');
+    await tester.pump();
+    await tester.ensureVisible(find.text('Streetwear'));
+    await tester.tap(find.widgetWithText(FilterChip, 'Streetwear'));
+    await tester.pump();
+    // Styles are now the user's; a new name must not replace them.
+    await tester.ensureVisible(find.byKey(const Key('name-field')));
+    await enterName(tester, 'Black hoodie');
+    await tester.pump();
+    await saveAndWait(tester);
+    final saved = (await allItems(tester)).single;
+    expect(saved.styleTags, {
+      StyleTag.classic,
+      StyleTag.minimal,
+      StyleTag.streetwear,
+    });
+  });
+
+  testApp('the category decides an ambiguous name', (tester, paths) async {
+    await pumpApp(tester, paths: paths);
+    await openAddForm(tester);
+    await enterName(tester, 'Brown oxfords');
+    await chooseCategory(tester, 'Shoes');
+    await saveAndWait(tester);
+    expect((await allItems(tester)).single.formality, Formality.smart);
+  });
+
+  testApp('the guide dialog explains every level and style', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths);
+    await openAddForm(tester);
+    await tester.ensureVisible(find.byKey(const Key('details-guide')));
+    await tester.tap(find.byKey(const Key('details-guide')));
+    await tester.pumpAndSettle();
+    expect(find.text('What do these mean?'), findsWidgets);
+    expect(find.textContaining(Formality.smartCasual.guide), findsOneWidget);
+    expect(find.textContaining(StyleTag.streetwear.guide), findsOneWidget);
+  });
+
   testApp('desktop has no Crop or Take photo', (tester, paths) async {
     await pumpApp(tester, paths: paths);
     await openAddForm(tester);
