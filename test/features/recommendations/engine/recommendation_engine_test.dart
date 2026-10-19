@@ -184,6 +184,70 @@ void main() {
     expect(recs.any((r) => r.items.any((i) => i.id == 'z-fav')), isTrue);
   });
 
+  group('daily turns at the cap', () {
+    final tops = [
+      for (var i = 0; i < 30; i++) top('t${i.toString().padLeft(2, '0')}'),
+    ];
+    final others = [bottom('b'), shoes('s')];
+
+    Set<String> topsOn(DateTime day, [List<ClothingItem>? wardrobe]) =>
+        recommend(
+              RecommendationRequest(
+                items: wardrobe ?? [...tops, ...others],
+                limit: 1 << 30,
+                day: day,
+              ),
+            )
+            .expand((r) => r.items)
+            .where((i) => i.id.startsWith('t'))
+            .map((i) => i.id)
+            .toSet();
+
+    test('consecutive days show different tops and together cover all', () {
+      final a = topsOn(DateTime(2026, 10, 19));
+      final b = topsOn(DateTime(2026, 10, 20));
+      expect(a, hasLength(15));
+      expect(b, hasLength(15));
+      expect(a.intersection(b), isEmpty);
+      expect(a.union(b), hasLength(30));
+    });
+
+    test('the same date gives the same result at any time of day', () {
+      expect(
+        topsOn(DateTime(2026, 10, 19, 0, 5)),
+        topsOn(DateTime(2026, 10, 19, 23, 55)),
+      );
+    });
+
+    test('favourites are kept on every day', () {
+      final wardrobe = [
+        ...tops,
+        item(id: 'tfav', category: ClothingCategory.top, isFavourite: true),
+        ...others,
+      ];
+      for (var d = 19; d < 24; d++) {
+        expect(topsOn(DateTime(2026, 10, d), wardrobe), contains('tfav'));
+      }
+    });
+
+    test('without a day the order stays fixed by id', () {
+      final shown =
+          recommend(
+                RecommendationRequest(
+                  items: [...tops, ...others],
+                  limit: 1 << 30,
+                ),
+              )
+              .expand((r) => r.items)
+              .where((i) => i.id.startsWith('t'))
+              .map((i) => i.id)
+              .toSet();
+      expect(shown, {
+        for (var i = 0; i < 15; i++) 't${i.toString().padLeft(2, '0')}',
+      });
+    });
+  });
+
   test('match labels', () {
     expect(MatchLabel.of(0.8), MatchLabel.strong);
     expect(MatchLabel.of(0.6), MatchLabel.good);

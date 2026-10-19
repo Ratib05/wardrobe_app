@@ -117,10 +117,10 @@ Code: `lib/features/recommendations/engine/` (pure Dart; no Flutter, database or
 Not archived, condition not "Needs repair" ("unavailable"), primary colour not in the user's avoided colours, and no avoided style tag.
 
 ### Candidate generation
-- Each category is capped (15 items; outerwear 6). Favourites are kept first, then items matching the selected occasion, then the selected season, then by id.
+- Each category is capped (15 items; outerwear 6). Favourites are kept first, then items matching the selected occasion, then the selected season, then by id. Items tied at the cut-off take turns by date: the window moves forward by the number of free slots each day, so every tied item is shown within a few days (30 tops: 2 days). The same date always gives the same list, and the Suggestions screen passes today's date; without a date (gap analysis, item stats) the order is fixed by id.
 - Every combination of a template's required categories is built, once without outerwear and once with each outerwear item.
 - A combination is identified by its fingerprint: sorted item ids joined with `|`. Dismissed fingerprints are removed.
-- Results are ranked by score (highest first), ties broken by fingerprint, and the top 20 are returned. Identical inputs always give identical output.
+- Results are ranked by score (highest first), ties broken by fingerprint, and the top 20 are returned. Identical inputs (including the date) always give identical output.
 
 ### Scoring (each factor 0 to 1; weighted sum)
 | Factor (weight) | Rule |

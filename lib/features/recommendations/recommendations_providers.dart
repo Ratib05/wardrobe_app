@@ -105,6 +105,7 @@ final recommendationsProvider =
           formality: filters.formality,
           weights: weights,
           mustInclude: must,
+          day: DateTime.now(),
         ),
       );
       return RecommendationResults(

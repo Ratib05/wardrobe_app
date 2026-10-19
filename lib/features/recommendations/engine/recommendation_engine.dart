@@ -123,6 +123,7 @@ class RecommendationRequest {
     this.maxOuterwear = 6,
     this.weights,
     this.mustInclude,
+    this.day,
   });
 
   final List<ClothingItem> items;
@@ -144,19 +145,27 @@ class RecommendationRequest {
   /// gap analysis to evaluate an item the user does not own yet). It bypasses
   /// eligibility and the per-category cap.
   final ClothingItem? mustInclude;
+
+  /// When set, clothes cut by the per-category cap take turns by date (see
+  /// [_capped]). Null keeps the order fixed by id.
+  final DateTime? day;
 }
 
 const _fallbackReason = 'Meets the basic outfit rules';
 
 /// Orders a category's items so the cap keeps the most relevant ones:
 /// favourites, then occasion match, then season match, then id.
-// ponytail: per-category cap keeps favourites first; beyond the cap other
-// items never appear. Add rotation or a "more" option if that is noticed.
+///
+/// Items tied at the cut-off are not always the same ones: when [day] is set
+/// they take turns, moving forward by the number of free slots each day, so
+/// every tied item is shown within a few days. Items ranked above the cut-off
+/// (such as favourites) are always kept. The same date gives the same result.
 List<ClothingItem> _capped(
   List<ClothingItem> items,
   int cap,
   Occasion? occasion,
   Season? season,
+  DateTime? day,
 ) {
   int rank(ClothingItem i) =>
       (i.isFavourite ? 4 : 0) +
@@ -167,7 +176,21 @@ List<ClothingItem> _capped(
       final r = rank(b).compareTo(rank(a));
       return r != 0 ? r : a.id.compareTo(b.id);
     });
-  return sorted.length > cap ? sorted.sublist(0, cap) : sorted;
+  if (sorted.length <= cap) return sorted;
+  if (day == null) return sorted.sublist(0, cap);
+
+  final cutRank = rank(sorted[cap - 1]);
+  final above = sorted.where((i) => rank(i) > cutRank).toList();
+  final tied = sorted.where((i) => rank(i) == cutRank).toList();
+  final slots = cap - above.length;
+  final dayNumber =
+      DateTime.utc(day.year, day.month, day.day).millisecondsSinceEpoch ~/
+      Duration.millisecondsPerDay;
+  final start = (dayNumber * slots) % tied.length;
+  return [
+    ...above,
+    for (var k = 0; k < slots; k++) tied[(start + k) % tied.length],
+  ];
 }
 
 /// Generates, validates, scores and ranks outfits from [request.items].
@@ -202,6 +225,7 @@ List<Recommendation> recommend(RecommendationRequest request) =>
             : request.maxPerCategory,
         request.occasion,
         request.season,
+        request.day,
       ),
   };
 
