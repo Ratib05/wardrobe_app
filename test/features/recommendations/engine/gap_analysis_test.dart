@@ -118,6 +118,64 @@ void main() {
     }
   });
 
+  group('neutral colours', () {
+    final owned = [
+      for (var i = 0; i < 3; i++) neutral('t$i', ClothingCategory.top),
+      for (var i = 0; i < 3; i++) neutral('b$i', ClothingCategory.bottom),
+      neutral('s', ClothingCategory.footwear),
+    ];
+
+    test('every plain neutral unlocks the same number of outfits', () {
+      // The shortcut of trying one neutral per category relies on this.
+      final counts = {
+        for (final c in WardrobeColour.values.where((c) => c.isNeutral))
+          outfitsUnlockedBy(
+            items: owned,
+            category: ClothingCategory.footwear,
+            colour: c,
+            formality: Formality.casual,
+          ),
+      };
+      expect(counts, hasLength(1));
+    });
+
+    test('suggests the neutral you own fewest of, and says so', () {
+      final shoes = analyseGaps(
+        GapRequest(items: owned),
+      ).firstWhere((s) => s.category == ClothingCategory.footwear);
+      expect(shoes.colour, WardrobeColour.white); // black is already owned
+      expect(shoes.explanation, endsWith('You have no white shoes yet.'));
+    });
+
+    test('only one plain neutral per category and formality', () {
+      final result = analyseGaps(GapRequest(items: owned));
+      for (final c in ClothingCategory.values) {
+        expect(
+          result.where((s) => s.category == c).length,
+          lessThanOrEqualTo(1),
+        );
+      }
+    });
+
+    test('hiding a suggestion brings up the next neutral', () {
+      final items = [
+        plain('t', ClothingCategory.top),
+        plain('b', ClothingCategory.bottom),
+      ];
+      final first = analyseGaps(GapRequest(items: items)).first;
+      final again =
+          analyseGaps(
+            GapRequest(items: items, excludedKeys: {first.key}),
+          ).where(
+            (s) =>
+                s.category == first.category && s.formality == first.formality,
+          );
+      expect(again, hasLength(1));
+      expect(again.single.colour, isNot(first.colour));
+      expect(again.single.colour.isNeutral, isTrue);
+    });
+  });
+
   test('archived items are ignored', () {
     final items = [
       item(id: 't', category: ClothingCategory.top, isArchived: true),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wardrobe_app/app/providers.dart';
 import 'package:wardrobe_app/core/wardrobe_values.dart';
@@ -30,7 +30,7 @@ void main() {
   ) async {
     await pumpApp(tester, paths: paths, items: noFootwear);
     await openGaps(tester);
-    expect(find.text('Beige casual shoes'), findsOneWidget);
+    expect(find.text('Black casual shoes'), findsOneWidget);
     expect(find.text('Needed'), findsWidgets);
     expect(find.text('PAIRS WITH'), findsWidgets);
     expect(
@@ -48,16 +48,16 @@ void main() {
     await tester.tap(find.text('Add to wishlist').first);
     await pumpUntilGone(
       tester,
-      find.byKey(const Key('gap-footwear:beige:casual')),
+      find.byKey(const Key('gap-footwear:black:casual')),
     );
     final db = containerOf(tester).read(appDatabaseProvider);
     final row = (await tester.runAsync(
       () => db.select(db.wishlistItems).getSingle(),
     ))!;
-    expect(row.name, 'Beige casual shoes');
+    expect(row.name, 'Black casual shoes');
     expect(row.status, WishlistStatus.planned);
     expect(row.reason, contains('This would make'));
-    expect(row.preferredColours, {WardrobeColour.beige});
+    expect(row.preferredColours, {WardrobeColour.black});
   });
 
   testApp('Not for me stores a dismissed entry and hides the card', (
@@ -69,7 +69,7 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, 'Not for me').first);
     await pumpUntilGone(
       tester,
-      find.byKey(const Key('gap-footwear:beige:casual')),
+      find.byKey(const Key('gap-footwear:black:casual')),
     );
     final db = containerOf(tester).read(appDatabaseProvider);
     final row = (await tester.runAsync(

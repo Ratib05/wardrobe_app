@@ -106,10 +106,18 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
     for (final t in active) ...t.required,
     for (final t in active) ...t.optional,
   };
-  final colours = <WardrobeColour>{
-    ...WardrobeColour.values.where((c) => c.isNeutral),
-    ...request.preferences.preferredColours,
-  }..removeAll(request.preferences.excludedColours);
+  final excluded = request.preferences.excludedColours;
+  final preferredCandidates = {...request.preferences.preferredColours}
+    ..removeAll(excluded);
+  // Neutrals all score identically (a neutral goes with anything), so for
+  // each category and formality only one of them is tried.
+  final plainNeutrals = [
+    for (final c in WardrobeColour.values)
+      if (c.isNeutral &&
+          !preferredCandidates.contains(c) &&
+          !excluded.contains(c))
+        c,
+  ];
   final ownedFormalities = {
     for (final i in owned)
       if (i.formality != null) i.formality!,
@@ -130,12 +138,26 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
   final found = <GapSuggestion>[];
   for (final category in ClothingCategory.values) {
     if (!candidateCategories.contains(category)) continue;
-    for (final colour in WardrobeColour.values) {
-      if (!colours.contains(colour)) continue;
-      for (final formality in Formality.values) {
-        if (!formalities.contains(formality)) continue;
-        final key = gapKey(category, colour, formality);
-        if (request.excludedKeys.contains(key)) continue;
+    int ownedIn(WardrobeColour c) => owned
+        .where((i) => i.category == category && i.primaryColour == c)
+        .length;
+    // The neutral you own fewest of in this category first (ties: list order).
+    final neutralsByOwned = [...plainNeutrals]
+      ..sort((a, b) {
+        final c = ownedIn(a).compareTo(ownedIn(b));
+        return c != 0 ? c : a.index.compareTo(b.index);
+      });
+    for (final formality in Formality.values) {
+      if (!formalities.contains(formality)) continue;
+      bool hidden(WardrobeColour c) =>
+          request.excludedKeys.contains(gapKey(category, c, formality));
+      final colours = [
+        ...WardrobeColour.values.where(
+          (c) => preferredCandidates.contains(c) && !hidden(c),
+        ),
+        ?neutralsByOwned.where((c) => !hidden(c)).firstOrNull,
+      ];
+      for (final colour in colours) {
         final suggestion = _evaluate(
           request,
           owned,
@@ -143,6 +165,7 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
           colour,
           formality,
           canMakeOutfits,
+          ownedIn(colour),
         );
         if (suggestion != null) found.add(suggestion);
       }
@@ -182,6 +205,7 @@ GapSuggestion? _evaluate(
   WardrobeColour colour,
   Formality formality,
   bool canMakeOutfits,
+  int ownedOfColour,
 ) {
   final key = gapKey(category, colour, formality);
   final title =
@@ -259,7 +283,9 @@ GapSuggestion? _evaluate(
     title: title,
     explanation:
         'Would pair with $partnerCount of your items, adding '
-        '${good.length} good outfits.',
+        '${good.length} good outfits.'
+        '${ownedOfColour == 0 ? ' You have no ${colour.label.toLowerCase()} '
+                  '${category.labelPlural.toLowerCase()} yet.' : ''}',
   );
 }
 

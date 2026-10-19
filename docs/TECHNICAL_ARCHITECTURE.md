@@ -164,7 +164,7 @@ lib/
 
 - **Layering:** screens read Riverpod providers; providers call repositories; repositories use Drift DAOs. No SQL appears outside `lib/database/`.
 - **Engine isolation:** `features/recommendations/engine/` imports only `lib/core/`; a test enforces that it never imports Flutter, Drift, database or service code.
-- **Background work:** recommendations and gap analysis run in a short-lived isolate (`Isolate.run`) so the UI stays responsive (about 0.6 s and 3 s for a 500-item wardrobe on a debug build). Providers expose the runners (`recommendRunnerProvider`, `gapRunnerProvider`) so tests can substitute direct calls.
+- **Background work:** recommendations and gap analysis run in a short-lived isolate (`Isolate.run`) so the UI stays responsive (about 0.5 s and 0.8 s for a 500-item wardrobe on a debug build). Providers expose the runners (`recommendRunnerProvider`, `gapRunnerProvider`) so tests can substitute direct calls.
 - **Database lifecycle:** `appDatabaseProvider` owns the connection. A restore closes the connection, swaps files, and invalidates the provider so every repository reconnects.
 - **Startup failures:** if storage cannot be prepared, a plain error screen explains that no data was changed (`StartupErrorApp`).
 - **Navigation:** `StatefulShellRoute.indexedStack` with six branches: Wardrobe, Outfits, Suggestions, Gaps & wishlist, Backup, and Settings (reached from a link in the sidebar). From 600 px wide a sidebar with a "stored on this device / last backup" footer is shown; below that a five-item bottom bar. The app opens on the Wardrobe; there is no dashboard.

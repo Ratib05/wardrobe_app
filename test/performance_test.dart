@@ -87,6 +87,6 @@ void main() {
     // ignore: avoid_print
     print('gap analysis 500 items: ${elapsed.inMilliseconds} ms');
     expect(gaps.length, lessThanOrEqualTo(10));
-    expect(elapsed, lessThan(const Duration(seconds: 10)));
+    expect(elapsed, lessThan(const Duration(seconds: 2)));
   });
 }
