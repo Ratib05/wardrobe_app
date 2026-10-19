@@ -177,7 +177,7 @@ Needed first, then by the number of new outfits, then the number of distinct ite
 ### Weights, titles and the outfit check
 
 - **Custom weights:** stored as `user_preferences` rows of type `scoreWeight` (value = factor name, `weight` = relative strength). They are normalised to sum to 1 when read; no rows means the defaults. All-zero or negative weights are rejected.
-- **Titles:** a deterministic name from the outfit's average formality (Laid-back, Easy, Crisp, Sharp, Dressy, or Classic when unknown) and its colours (neutral, tonal, colourful, or simple when unknown), for example "Crisp and neutral".
+- **Titles:** a deterministic name from the outfit's average formality (`averageFormality`, also used by the Outfits list filter) (Laid-back, Easy, Crisp, Sharp, Dressy, or Classic when unknown) and its colours (neutral, tonal, colourful, or simple when unknown), for example "Crisp and neutral".
 - **Formality filter:** keeps items of the chosen formality and items with none recorded. **Must include** uses the engine's `mustInclude` hook.
 - **Valid combinations:** `recommendWithTotal` also returns the number of valid, non-dismissed combinations before the top 20 are cut.
 - **Outfit check (builder):** `outfitCheck` scores a hand-built outfit with the same factors and weights (feedback is neutral). Notes are factor reasons (0.75 or more) and weaknesses (below 0.5). `rankShoes` orders shoes by that score and labels them Strong fit, Good fit, Slightly formal or Slightly casual from formality relative to the other chosen items.

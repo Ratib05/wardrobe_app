@@ -1,5 +1,16 @@
 import 'wardrobe_values.dart';
 
+/// The rounded average formality of [items]; null when none has a formality.
+Formality? averageFormality(Iterable<ClothingItem> items) {
+  final levels = [
+    for (final i in items)
+      if (i.formality != null) i.formality!.index,
+  ];
+  if (levels.isEmpty) return null;
+  final mean = levels.reduce((a, b) => a + b) / levels.length;
+  return Formality.values[mean.round()];
+}
+
 /// Returns an error message for an invalid name, or null when valid.
 String? validateItemName(String name) {
   final trimmed = name.trim();

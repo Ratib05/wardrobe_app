@@ -78,4 +78,16 @@ void main() {
       'Formal',
     ]);
   });
+
+  test('averageFormality rounds the mean and ignores unset items', () {
+    expect(averageFormality([item(), item()]), isNull);
+    expect(
+      averageFormality([
+        item(formality: Formality.casual),
+        item(formality: Formality.smart),
+        item(),
+      ]),
+      Formality.smartCasual,
+    );
+  });
 }

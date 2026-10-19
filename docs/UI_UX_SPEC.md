@@ -41,6 +41,11 @@ Implemented to match the design mockups. The header (back link, title, Cancel an
 - Only name and category are required.
 - Narrow screens: a single column with Cancel and Save in a bar at the bottom.
 
+## 5a. Outfits List
+
+- Header: "N OUTFITS" (on phones, "N outfits" under the title), the title, and a Favourites toggle.
+- Formality pills with counts: All, Relaxed, Casual, Smart casual, Smart, Formal. One at a time, combined with Favourites. An outfit's formality is the rounded average of its items' formality (not stored); outfits whose items have no formality appear only under All.
+
 ## 6. Outfit Builder
 
 Implemented. Slots, a picker and a live check, on one screen.

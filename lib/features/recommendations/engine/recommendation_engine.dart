@@ -78,21 +78,14 @@ class Recommendation {
 
 /// Names an outfit from its formality and colours.
 String outfitTitle(List<ClothingItem> items) {
-  final levels = [
-    for (final i in items)
-      if (i.formality != null) i.formality!.index,
-  ];
-  final lead = levels.isEmpty
-      ? 'Classic'
-      : switch (Formality.values[(levels.reduce((a, b) => a + b) /
-                levels.length)
-            .round()]) {
-          Formality.relaxed => 'Laid-back',
-          Formality.casual => 'Easy',
-          Formality.smartCasual => 'Crisp',
-          Formality.smart => 'Sharp',
-          Formality.formal => 'Dressy',
-        };
+  final lead = switch (averageFormality(items)) {
+    null => 'Classic',
+    Formality.relaxed => 'Laid-back',
+    Formality.casual => 'Easy',
+    Formality.smartCasual => 'Crisp',
+    Formality.smart => 'Sharp',
+    Formality.formal => 'Dressy',
+  };
   final colours = [
     for (final i in items)
       if (i.primaryColour != null) i.primaryColour!,

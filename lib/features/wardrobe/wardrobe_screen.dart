@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets/clothing_photo.dart';
+import '../../app/widgets/count_chip.dart';
 import '../../app/widgets/error_view.dart';
 import '../../app/widgets/page_header.dart';
 import '../../core/clothing_item.dart';
@@ -371,34 +372,8 @@ class _CategoryChips extends StatelessWidget {
   final Set<ClothingCategory> selected;
   final ValueChanged<Set<ClothingCategory>> onSelect;
 
-  Widget _chip(String label, int count, bool isSelected, VoidCallback onTap) {
-    final fg = isSelected ? Colors.white : AppColors.text;
-    return FilterChip(
-      selected: isSelected,
-      onSelected: (_) => onTap(),
-      selectedColor: AppColors.text,
-      side: BorderSide(color: isSelected ? AppColors.text : AppColors.border),
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: TextStyle(color: fg, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            '$count',
-            style: TextStyle(
-              color: fg.withValues(alpha: 0.7),
-              fontSize: 11,
-              fontFamily: monoFamily,
-              fontFamilyFallback: monoFallback,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _chip(String label, int count, bool isSelected, VoidCallback onTap) =>
+      CountChip(label: label, count: count, selected: isSelected, onTap: onTap);
 
   @override
   Widget build(BuildContext context) {
