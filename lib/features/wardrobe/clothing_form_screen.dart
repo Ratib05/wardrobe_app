@@ -1181,6 +1181,8 @@ class _AddColour extends StatelessWidget {
     final colour = await showDialog<WardrobeColour>(
       context: context,
       builder: (context) => AlertDialog(
+        // Long colour lists scroll instead of spilling past the dialog.
+        scrollable: true,
         title: const Text('Add a colour'),
         content: SizedBox(
           width: 420,
@@ -1269,30 +1271,39 @@ class _Segmented<T extends Enum> extends StatelessWidget {
         border: Border.all(color: AppColors.border),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
-        children: [
-          for (final v in values)
-            Expanded(
-              child: InkWell(
-                key: Key('segment-${v.name}'),
-                onTap: () => onChanged(selected == v ? null : v),
-                child: Container(
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  color: selected == v ? AppColors.text : Colors.transparent,
-                  child: Text(
-                    label(v),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: selected == v ? Colors.white : AppColors.text,
+      // Labels like "Smart casual" wrap onto two lines on phones; every
+      // segment stretches to the tallest so the selection fills its cell.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final v in values)
+              Expanded(
+                child: InkWell(
+                  key: Key('segment-${v.name}'),
+                  onTap: () => onChanged(selected == v ? null : v),
+                  child: Container(
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 4,
+                    ),
+                    color: selected == v ? AppColors.text : Colors.transparent,
+                    child: Text(
+                      label(v),
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: selected == v ? Colors.white : AppColors.text,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     ),
   );

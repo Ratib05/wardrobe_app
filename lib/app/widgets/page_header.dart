@@ -22,10 +22,12 @@ class PageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Phones (the bottom-bar layout) skip the eyebrow to save space.
+    final showEyebrow = MediaQuery.sizeOf(context).width >= 600;
     final heading = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (eyebrow != null) ...[
+        if (eyebrow != null && showEyebrow) ...[
           Text(eyebrow!.toUpperCase(), style: monoCaption(context)),
           const SizedBox(height: 4),
         ],

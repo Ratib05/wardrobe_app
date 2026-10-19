@@ -34,16 +34,19 @@ class AppShell extends StatelessWidget {
     final index = navigationShell.currentIndex;
     if (MediaQuery.sizeOf(context).width >= 600) {
       return Scaffold(
-        body: Row(
-          children: [
-            _Sidebar(selected: index, onSelect: _select),
-            Expanded(child: navigationShell),
-          ],
+        body: SafeArea(
+          child: Row(
+            children: [
+              _Sidebar(selected: index, onSelect: _select),
+              Expanded(child: navigationShell),
+            ],
+          ),
         ),
       );
     }
     return Scaffold(
-      body: navigationShell,
+      // Tab pages have no app bar, so keep them clear of the status bar.
+      body: SafeArea(bottom: false, child: navigationShell),
       bottomNavigationBar: NavigationBar(
         // Settings lives under Backup on narrow screens.
         selectedIndex: index == settingsBranchIndex ? 4 : index,

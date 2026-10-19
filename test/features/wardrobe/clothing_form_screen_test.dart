@@ -45,7 +45,10 @@ Future<void> addColour(WidgetTester tester, WardrobeColour colour) async {
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const Key('add-colour')));
   await tester.pumpAndSettle();
-  await tester.tap(find.byKey(Key('pick-colour-${colour.name}')));
+  final pick = find.byKey(Key('pick-colour-${colour.name}'));
+  await tester.ensureVisible(pick);
+  await tester.pumpAndSettle();
+  await tester.tap(pick);
   await tester.pumpAndSettle();
 }
 

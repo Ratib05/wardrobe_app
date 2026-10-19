@@ -26,6 +26,10 @@ void main() {
     expect(nameOf(0xDDCDB0), WardrobeColour.beige);
     expect(nameOf(0xA5502C), WardrobeColour.rust);
     expect(nameOf(0xF0F0F0), WardrobeColour.white);
+    expect(nameOf(0xF2E9D5), WardrobeColour.cream);
+    expect(nameOf(0xC4A070), WardrobeColour.tan);
+    expect(nameOf(0x1E4A2A), WardrobeColour.forestGreen);
+    expect(nameOf(0xD2A21A), WardrobeColour.mustard);
   });
 
   test('Multicolour is never returned', () {
