@@ -143,6 +143,8 @@ void main() {
     await pumpUntilFound(tester, find.textContaining('Wardrobe restored'));
 
     await tester.tap(find.byKey(const Key('nav-Wardrobe')));
+    await pumpUntilFound(tester, find.byKey(const Key('see-all')));
+    await openAllItems(tester);
     await pumpUntilFound(tester, find.text('Restored tee'));
     expect(find.text('Restored jeans'), findsOneWidget);
     expect(find.text('Old thing'), findsNothing);

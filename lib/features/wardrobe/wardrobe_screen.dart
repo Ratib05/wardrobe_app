@@ -12,6 +12,7 @@ import '../../core/clothing_item.dart';
 import '../../core/wardrobe_values.dart';
 import '../outfits/outfit_providers.dart';
 import 'widgets/filter_sheet.dart';
+import 'widgets/wardrobe_shelves.dart';
 import 'wardrobe_filter.dart';
 import 'wardrobe_providers.dart';
 
@@ -50,6 +51,9 @@ class WardrobeScreen extends ConsumerStatefulWidget {
 
 class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
   bool _grid = true;
+
+  /// "See all" was tapped: show the grid even with no filters set.
+  bool _seeAll = false;
   late final TextEditingController _search;
 
   /// Set while a bulk photo import runs.
@@ -75,6 +79,11 @@ class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
   void _clearFilters() {
     _search.clear();
     _notifier.clear();
+  }
+
+  void _backToShelves() {
+    _clearFilters();
+    setState(() => _seeAll = false);
   }
 
   void _openFilters() => showModalBottomSheet<void>(
@@ -139,6 +148,10 @@ class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
     final shown = ref.watch(filteredWardrobeProvider(widget.archived));
     final outfitCount = ref.watch(outfitsProvider).value?.length ?? 0;
     final items = all.value ?? const <ClothingItem>[];
+    // Shelves are the landing page; any search or filter shows the grid.
+    final showShelves =
+        !widget.archived && !filter.hasCriteria && !_seeAll && items.isNotEmpty;
+    final phone = MediaQuery.sizeOf(context).width < 600;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -179,6 +192,9 @@ class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
               if (compact) ...[
                 PageHeader(
                   eyebrow: eyebrow,
+                  subtitle: phone && !widget.archived
+                      ? '${items.length} ${_plural(items.length, 'item')}'
+                      : null,
                   title: widget.archived ? 'Archived' : 'Wardrobe',
                   compact: true,
                   trailing: Row(
@@ -237,12 +253,16 @@ class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
                   ),
                 ),
               const SizedBox(height: 16),
-              _CategoryChips(
-                items: items,
-                selected: filter.categories,
-                onSelect: (categories) =>
-                    _notifier.set(filter.copyWith(categories: categories)),
-              ),
+              if (!showShelves)
+                _CategoryChips(
+                  items: items,
+                  selected: filter.categories,
+                  onShelves: widget.archived ? null : _backToShelves,
+                  onSelect: (categories) {
+                    if (categories.isEmpty) _seeAll = true;
+                    _notifier.set(filter.copyWith(categories: categories));
+                  },
+                ),
               if (!compact) ...[
                 const SizedBox(height: 14),
                 _FilterRow(
@@ -299,6 +319,19 @@ class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
           error: (e, _) =>
               SliverFillRemaining(hasScrollBody: false, child: ErrorView(e)),
           data: (list) {
+            if (showShelves) {
+              return SliverPadding(
+                padding: EdgeInsets.fromLTRB(pad, 0, pad, 88),
+                sliver: SliverToBoxAdapter(
+                  child: WardrobeShelves(
+                    items: items,
+                    onOpen: (c) =>
+                        _notifier.set(filter.copyWith(categories: {c})),
+                    onSeeAll: () => setState(() => _seeAll = true),
+                  ),
+                ),
+              );
+            }
             if (list.isEmpty) {
               if (items.isEmpty) {
                 return widget.archived
@@ -340,19 +373,25 @@ class _WardrobeScreenState extends ConsumerState<WardrobeScreen> {
           },
         );
 
-        return Scaffold(
-          floatingActionButton: compact && !widget.archived
-              ? FloatingActionButton(
-                  tooltip: 'Add item',
-                  onPressed: () => context.push('/wardrobe/new'),
-                  child: const Icon(Icons.add),
-                )
-              : null,
-          body: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(child: header),
-              body,
-            ],
+        return PopScope(
+          canPop: widget.archived || showShelves,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) _backToShelves();
+          },
+          child: Scaffold(
+            floatingActionButton: compact && !widget.archived
+                ? FloatingActionButton(
+                    tooltip: 'Add item',
+                    onPressed: () => context.push('/wardrobe/new'),
+                    child: const Icon(Icons.add),
+                  )
+                : null,
+            body: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(child: header),
+                body,
+              ],
+            ),
           ),
         );
       },
@@ -366,8 +405,11 @@ class _CategoryChips extends StatelessWidget {
     required this.items,
     required this.selected,
     required this.onSelect,
+    required this.onShelves,
   });
 
+  /// Null on the archive, which has no shelves.
+  final VoidCallback? onShelves;
   final List<ClothingItem> items;
   final Set<ClothingCategory> selected;
   final ValueChanged<Set<ClothingCategory>> onSelect;
@@ -382,6 +424,15 @@ class _CategoryChips extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
+          if (onShelves != null) ...[
+            ActionChip(
+              key: const Key('back-to-shelves'),
+              avatar: const Icon(Icons.arrow_back, size: 16),
+              label: const Text('Shelves'),
+              onPressed: onShelves,
+            ),
+            const SizedBox(width: 8),
+          ],
           _chip('All', items.length, selected.isEmpty, () => onSelect({})),
           for (final c in _categoryTabs) ...[
             const SizedBox(width: 8),

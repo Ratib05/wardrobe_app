@@ -60,6 +60,7 @@ Future<List<ClothingItem>> allItems(WidgetTester tester) async {
 Future<void> openItem(WidgetTester tester, String name) async {
   await tester.tap(find.byKey(const Key('nav-Wardrobe')));
   await tester.pumpAndSettle();
+  await openAllItems(tester);
   await tester.tap(find.text(name));
   await pumpUntilFound(tester, find.byKey(const Key('name-field')));
 }

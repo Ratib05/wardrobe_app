@@ -274,3 +274,21 @@ String writeTestJpeg(StoragePaths paths, [String name = 'photo.jpg']) {
   final f = File('${paths.root.path}/$name')..writeAsBytesSync(jpegBytes());
   return f.path;
 }
+
+/// The Wardrobe tab opens on shelves; waits briefly for them, then taps
+/// "See all" to reach the item grid. Does nothing when there are no shelves
+/// (empty wardrobe, or the grid is already showing).
+Future<void> openAllItems(WidgetTester tester) async {
+  final seeAll = find.byKey(const Key('see-all'));
+  for (var i = 0; i < 20 && seeAll.evaluate().isEmpty; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+  if (seeAll.evaluate().isEmpty) return;
+  await tester.ensureVisible(seeAll);
+  await tester.pumpAndSettle();
+  await tester.tap(seeAll);
+  await tester.pumpAndSettle();
+}

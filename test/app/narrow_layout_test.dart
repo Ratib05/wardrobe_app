@@ -113,6 +113,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await openAllItems(tester);
     await tester.tap(find.text('Tee'));
     await pumpUntilFound(tester, find.byKey(const Key('name-field')));
     expect(tester.takeException(), isNull, reason: 'item form');

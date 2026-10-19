@@ -32,6 +32,7 @@ void main() {
 
   testApp('empty wardrobe shows empty state', (tester, paths) async {
     await pumpApp(tester, paths: paths);
+    await openAllItems(tester);
     expect(find.text('Your wardrobe is empty'), findsOneWidget);
     expect(find.text('Add your first item'), findsOneWidget);
     expect(find.text('0 ITEMS · 0 OUTFITS'), findsOneWidget);
@@ -39,6 +40,7 @@ void main() {
 
   testApp('header counts items and outfits', (tester, paths) async {
     await pumpApp(tester, paths: paths, items: wardrobe);
+    await openAllItems(tester);
     expect(find.text('Your wardrobe'), findsOneWidget);
     expect(find.text('4 ITEMS · 0 OUTFITS'), findsOneWidget);
     expect(find.text('TOPS · WHITE · SMART CASUAL'), findsOneWidget);
@@ -49,6 +51,7 @@ void main() {
     paths,
   ) async {
     await pumpApp(tester, paths: paths, items: wardrobe);
+    await openAllItems(tester);
     expect(
       find.descendant(
         of: find.widgetWithText(FilterChip, 'Tops'),
@@ -74,6 +77,7 @@ void main() {
 
   testApp('colour swatches filter by colour', (tester, paths) async {
     await pumpApp(tester, paths: paths, items: wardrobe);
+    await openAllItems(tester);
     await tester.tap(find.byKey(const Key('swatch-navy')));
     await tester.pumpAndSettle();
     expect(find.text('Navy crewneck tee'), findsOneWidget);
@@ -83,6 +87,7 @@ void main() {
 
   testApp('search narrows the list by name or colour', (tester, paths) async {
     await pumpApp(tester, paths: paths, items: wardrobe);
+    await openAllItems(tester);
     await tester.enterText(find.byType(TextField), 'oxford');
     await tester.pumpAndSettle();
     expect(find.text('White oxford shirt'), findsOneWidget);
@@ -99,6 +104,7 @@ void main() {
     paths,
   ) async {
     await pumpApp(tester, paths: paths, items: wardrobe);
+    await openAllItems(tester);
     await tester.enterText(find.byType(TextField), 'zzz');
     await tester.pumpAndSettle();
     expect(find.text('No items match these filters'), findsOneWidget);
@@ -117,6 +123,7 @@ void main() {
       paths: paths,
       items: [item(name: 'Ghost', imagePath: 'images/clothing/gone.jpg')],
     );
+    await openAllItems(tester);
     expect(find.text('Photo missing'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -126,6 +133,7 @@ void main() {
     paths,
   ) async {
     await pumpApp(tester, paths: paths, items: wardrobe);
+    await openAllItems(tester);
     expect(find.text('Photo missing'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -142,6 +150,7 @@ void main() {
         item(name: 'Old coat', isArchived: true),
       ],
     );
+    await openAllItems(tester);
     expect(find.text('Old coat'), findsNothing);
     await tester.tap(find.byTooltip('Archived items'));
     await tester.pumpAndSettle();
@@ -156,6 +165,7 @@ void main() {
       paths: paths,
       items: [item(name: 'Newest tee')],
     );
+    await openAllItems(tester);
     expect(find.text('Newest tee'), findsOneWidget);
     await tester.tap(find.byTooltip('List view'));
     await tester.pumpAndSettle();
@@ -164,6 +174,7 @@ void main() {
 
   testApp('the sort dropdown reorders the grid', (tester, paths) async {
     await pumpApp(tester, paths: paths, items: wardrobe);
+    await openAllItems(tester);
     final container = containerOf(tester);
     expect(
       container.read(filteredWardrobeProvider(false)).value!.first.id,
@@ -184,6 +195,7 @@ void main() {
     paths,
   ) async {
     await pumpApp(tester, paths: paths, items: wardrobe);
+    await openAllItems(tester);
     await tester.tap(find.byKey(const Key('needs-details')));
     await tester.pumpAndSettle();
     expect(find.text('Needs details (2)'), findsOneWidget);
@@ -202,6 +214,7 @@ void main() {
         writeTestJpeg(paths, 'chinos.jpg'),
       ];
     await pumpApp(tester, paths: paths, pickers: pickers);
+    await openAllItems(tester);
     await tester.tap(find.byKey(const Key('import-photos')));
     await tester.pumpAndSettle();
     expect(find.text('2 photos selected'), findsOneWidget);
@@ -233,6 +246,7 @@ void main() {
   ) async {
     final pickers = FakePickers(null);
     await pumpApp(tester, paths: paths, pickers: pickers);
+    await openAllItems(tester);
     await tester.tap(find.byKey(const Key('import-photos')));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
@@ -251,6 +265,7 @@ void main() {
     'narrow layout shows a filter button, search and an add button',
     (tester, paths) async {
       await pumpApp(tester, paths: paths, items: wardrobe);
+      await openAllItems(tester);
       expect(find.byTooltip('Filters'), findsOneWidget);
       expect(find.byTooltip('Add item'), findsOneWidget);
       expect(find.byTooltip('Import photos'), findsOneWidget);
@@ -260,4 +275,81 @@ void main() {
     },
     size: const Size(420, 800),
   );
+
+  testApp('opens on shelves with counts and no empty shelves', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    await pumpUntilFound(tester, find.byKey(const Key('shelf-top')));
+    expect(find.text('2 items'), findsOneWidget);
+    expect(find.text('1 item'), findsNWidgets(2));
+    expect(find.byKey(const Key('shelf-accessory')), findsNothing);
+    expect(find.text('White oxford shirt'), findsNothing);
+  });
+
+  testApp('a shelf shows only its category and Shelves goes back', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    await pumpUntilFound(tester, find.byKey(const Key('shelf-top')));
+    await tester.tap(find.byKey(const Key('shelf-top')));
+    await tester.pumpAndSettle();
+    expect(find.text('White oxford shirt'), findsOneWidget);
+    expect(find.text('Indigo jeans'), findsNothing);
+    await tester.tap(find.byKey(const Key('back-to-shelves')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('shelf-top')), findsOneWidget);
+  });
+
+  testApp('See all shows every item and the All pill stays on the grid', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    await openAllItems(tester);
+    expect(find.text('Indigo jeans'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilterChip, 'Tops'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilterChip, 'All'));
+    await tester.pumpAndSettle();
+    expect(find.text('Indigo jeans'), findsOneWidget);
+    expect(find.byKey(const Key('shelf-top')), findsNothing);
+  });
+
+  testApp('searching jumps from the shelves to matching items', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    await pumpUntilFound(tester, find.byKey(const Key('shelf-top')));
+    await tester.enterText(find.byType(TextField), 'jeans');
+    await tester.pumpAndSettle();
+    expect(find.text('Indigo jeans'), findsOneWidget);
+    expect(find.byKey(const Key('shelf-top')), findsNothing);
+  });
+
+  testApp('the back button returns from a shelf to the shelves', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    await pumpUntilFound(tester, find.byKey(const Key('shelf-top')));
+    await tester.tap(find.byKey(const Key('shelf-top')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('shelf-top')), findsNothing);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('shelf-top')), findsOneWidget);
+  });
+
+  testApp('a phone shows the item count under the title', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(tester, paths: paths, items: wardrobe);
+    await pumpUntilFound(tester, find.byKey(const Key('shelf-top')));
+    expect(find.text('4 items'), findsOneWidget);
+  }, size: const Size(360, 800));
 }

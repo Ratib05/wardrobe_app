@@ -20,7 +20,8 @@ There is no dashboard. The app opens on the Wardrobe. (Superseded by the design 
 Implemented to match the design mockups.
 
 - Header: a small monospace line "12 ITEMS · 18 OUTFITS", the title "Your wardrobe", a search box (name, colour and brand), an "Import photos" button and an "Add item" button.
-- Category pills with counts: All, Tops, Bottoms, Dresses, Outerwear, Shoes, Accessories. One category at a time.
+- Shelves (landing page, all screen sizes): the Wardrobe tab opens on one shelf per category that has items (empty categories are hidden). Each shelf shows a stack of the newest photos, the category name and "N items". Tapping a shelf opens the grid for that category; "SEE ALL" opens the grid with every item. Setting a search or filter also goes straight to the grid. The archive has no shelves. On phones the total ("24 items") shows under the title; on desktop the header line shows items and outfits.
+- Category pills with counts, shown with the grid: a "Shelves" pill (back to the shelves; the phone back button does the same), All, Tops, Bottoms, Dresses, Outerwear, Shoes, Accessories. One category at a time.
 - Filter row: Season, Occasion and Sort dropdowns, quick colour chips, each a swatch with its name (White, Black, Navy, Grey, Beige, Olive, Brown), and buttons for more filters (style, formality, favourites, full colour list), grid/list view, and archived items. A "Needs details (N)" chip shows only items with no main colour or no formality.
 - Import photos: pick several images (Windows file dialog, Android photo picker), choose one category in a dialog ("N photos selected", Import disabled until a category is chosen), then each photo becomes an item named after its file (`blue_oxford-shirt.jpg` becomes "Blue oxford shirt", up to 80 characters, "Imported item" if nothing is left). Imported items are hidden from suggestions; the user fills in details and unticks "Hide from suggestions" on each. A progress line ("Importing 3 of 12...") shows while it runs, then a message such as "Imported 11 items · 1 skipped (photo.heic)" with a "Show" action that turns on Needs details. Unreadable photos are skipped; the rest are saved in one transaction, so a failed save adds nothing. There is no cropping during import.
 - Item cards: photo (or a garment silhouette tinted with the item's colour when there is no photo), name, and a caption such as "TOPS · NAVY · SMART CASUAL" (category, main colour name, formality). Favourite and "hidden from suggestions" markers appear on the photo. A missing photo file shows a "Photo missing" placeholder.
@@ -101,7 +102,7 @@ Windows is the initial target. Layouts should also accommodate narrower screens 
 ### Phone layouts (width under 640 px)
 
 - **Navigation:** a bottom bar (Wardrobe, Outfits, Suggest, Gaps, Backup). Settings is reached from the icon in the Backup page header.
-- **Wardrobe:** pill search, import photos and filters buttons, a two-column grid and a floating "+" button.
+- **Wardrobe:** opens on shelves (see section 4), with the item total under the title; pill search, import photos and filters buttons, a two-column grid and a floating "+" button.
 - **Add/Edit item:** one column, with Cancel and Save in a bottom bar. Choosing a photo offers Take photo or Choose from gallery, then the crop screen. A Crop button re-crops the current photo; Rotate 90° is also available.
 - **Outfit builder:** one column (slots, picker, outfit check, details).
 - **Suggestions:** the filters sit in a collapsed "Filters" panel, and suggestions are shown one per page with a "1 / N" counter and previous/next arrows (swipe also works).

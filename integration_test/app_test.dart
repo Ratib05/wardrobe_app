@@ -30,6 +30,12 @@ Widget appFor(StoragePaths paths, FakePickers pickers, Key key) =>
 Future<void> openWardrobe(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('nav-Wardrobe')));
   await tester.pumpAndSettle();
+  // The Wardrobe opens on shelves; "See all" shows the item grid.
+  final seeAll = find.byKey(const Key('see-all'));
+  if (seeAll.evaluate().isNotEmpty) {
+    await tester.tap(seeAll);
+    await tester.pumpAndSettle();
+  }
 }
 
 void main() {
@@ -70,6 +76,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('save-item')));
     await pumpUntilGone(tester, find.byKey(const Key('save-item')));
+    // Saving returns to the shelves; "See all" shows the new item.
+    await pumpUntilFound(tester, find.byKey(const Key('see-all')));
+    await tester.tap(find.byKey(const Key('see-all')));
+    await tester.pumpAndSettle();
     await pumpUntilFound(tester, find.text('White tee'));
 
     // "Restart": tear the app down and start a fresh one on the same storage.
