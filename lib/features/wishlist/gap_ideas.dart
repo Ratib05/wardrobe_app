@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme.dart';
+import '../../app/widgets/count_chip.dart';
 import '../../app/widgets/clothing_photo.dart';
 import '../../app/widgets/error_view.dart';
 import '../../core/wardrobe_values.dart';
+import '../wardrobe/wardrobe_providers.dart';
 import '../recommendations/engine/gap_analysis.dart';
 import 'gap_providers.dart';
 import 'wishlist_providers.dart';
@@ -15,8 +17,18 @@ import 'wishlist_providers.dart';
 const strongIdeaMinOutfits = 6;
 
 /// Purchase ideas that would unlock more outfits, as cards.
-class GapIdeas extends ConsumerWidget {
+class GapIdeas extends ConsumerStatefulWidget {
   const GapIdeas({super.key});
+
+  @override
+  ConsumerState<GapIdeas> createState() => _GapIdeasState();
+
+  static bool _isStrong(GapSuggestion s) =>
+      s.kind == GapKind.needed || s.newOutfits >= strongIdeaMinOutfits;
+}
+
+class _GapIdeasState extends ConsumerState<GapIdeas> {
+  GapTarget _target = noGapTarget;
 
   Future<void> _store(WidgetRef ref, GapSuggestion s, WishlistStatus status) =>
       ref
@@ -30,9 +42,88 @@ class GapIdeas extends ConsumerWidget {
             status: status,
           );
 
+  /// Pills for picking one value; each shows how many available items match.
+  Widget _pills<T>(
+    String label,
+    List<T> values,
+    String Function(T) name,
+    int Function(T) count,
+    T? selected,
+    void Function(T?) onPick,
+    int total,
+  ) => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: Row(
+      children: [
+        CountChip(
+          key: Key('plan-$label-any'),
+          label: 'Any',
+          count: total,
+          selected: selected == null,
+          onTap: () => onPick(null),
+        ),
+        for (final v in values) ...[
+          const SizedBox(width: 8),
+          CountChip(
+            key: Key('plan-$label-${name(v)}'),
+            label: name(v),
+            count: count(v),
+            selected: selected == v,
+            onTap: () => onPick(v),
+          ),
+        ],
+      ],
+    ),
+  );
+
+  Widget _planFor() {
+    final items = [
+      for (final i in ref.watch(wardrobeItemsProvider(false)).value ?? const [])
+        if (i.isAvailable) i,
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('PLAN FOR', style: monoCaption(context)),
+        const SizedBox(height: 8),
+        _pills<Occasion>(
+          'occasion',
+          Occasion.values,
+          (o) => o.label,
+          (o) => items.where((i) => i.occasions.contains(o)).length,
+          _target.occasion,
+          (o) => setState(
+            () => _target = (occasion: o, formality: _target.formality),
+          ),
+          items.length,
+        ),
+        const SizedBox(height: 8),
+        _pills<Formality>(
+          'formality',
+          Formality.values,
+          (f) => f.label,
+          (f) => items.where((i) => i.formality == f).length,
+          _target.formality,
+          (f) => setState(
+            () => _target = (occasion: _target.occasion, formality: f),
+          ),
+          items.length,
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final results = ref.watch(gapSuggestionsProvider);
+  Widget build(BuildContext context) {
+    final results = ref.watch(gapSuggestionsProvider(_target));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [_planFor(), _results(results)],
+    );
+  }
+
+  Widget _results(AsyncValue<GapResults> results) {
     return results.when(
       loading: () => const Padding(
         padding: EdgeInsets.all(24),
@@ -46,8 +137,10 @@ class GapIdeas extends ConsumerWidget {
             child: Text(
               r.needClothing
                   ? 'Add some clothing first'
-                  : 'No suggestions right now — your wardrobe covers '
-                        'your outfit types.',
+                  : _target == noGapTarget
+                  ? 'No suggestions right now — your wardrobe covers '
+                        'your outfit types.'
+                  : 'Your wardrobe already covers these outfits.',
               style: const TextStyle(color: AppColors.muted),
             ),
           );
@@ -56,11 +149,11 @@ class GapIdeas extends ConsumerWidget {
         // within each group).
         final strong = [
           for (final s in r.suggestions)
-            if (_isStrong(s)) s,
+            if (GapIdeas._isStrong(s)) s,
         ];
         final weak = [
           for (final s in r.suggestions)
-            if (!_isStrong(s)) s,
+            if (!GapIdeas._isStrong(s)) s,
         ];
         return Wrap(
           spacing: 16,
@@ -69,7 +162,7 @@ class GapIdeas extends ConsumerWidget {
             for (final s in [...strong, ...weak])
               _IdeaCard(
                 suggestion: s,
-                strong: _isStrong(s),
+                strong: GapIdeas._isStrong(s),
                 onAdd: () => _store(ref, s, WishlistStatus.planned),
                 onDismiss: () => _store(ref, s, WishlistStatus.dismissed),
               ),
@@ -78,9 +171,6 @@ class GapIdeas extends ConsumerWidget {
       },
     );
   }
-
-  static bool _isStrong(GapSuggestion s) =>
-      s.kind == GapKind.needed || s.newOutfits >= strongIdeaMinOutfits;
 }
 
 class _IdeaCard extends StatelessWidget {

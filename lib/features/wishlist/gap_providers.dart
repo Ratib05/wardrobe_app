@@ -32,7 +32,15 @@ class GapResults {
   final bool needClothing;
 }
 
-final gapSuggestionsProvider = FutureProvider<GapResults>((ref) async {
+/// The event being planned for; both parts optional.
+typedef GapTarget = ({Occasion? occasion, Formality? formality});
+
+const noGapTarget = (occasion: null, formality: null);
+
+final gapSuggestionsProvider = FutureProvider.family<GapResults, GapTarget>((
+  ref,
+  target,
+) async {
   final items = await ref.watch(wardrobeItemsProvider(false).future);
   final prefs = await ref.watch(preferencesProvider.future);
   final wishlist = await ref.watch(allWishlistProvider.future);
@@ -44,6 +52,8 @@ final gapSuggestionsProvider = FutureProvider<GapResults>((ref) async {
       items: items,
       preferences: prefs,
       excludedKeys: wishlistGapKeys(wishlist),
+      occasion: target.occasion,
+      formality: target.formality,
     ),
   );
   return GapResults(suggestions, needClothing: false);

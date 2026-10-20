@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wardrobe_app/app/providers.dart';
 import 'package:wardrobe_app/core/wardrobe_values.dart';
@@ -37,6 +37,37 @@ void main() {
       find.textContaining('This would make 6 outfits possible'),
       findsWidgets,
     );
+  });
+
+  testApp('planning for Smart suggests a smart starter set', (
+    tester,
+    paths,
+  ) async {
+    final casual = [
+      for (final c in [
+        ClothingCategory.top,
+        ClothingCategory.bottom,
+        ClothingCategory.footwear,
+      ])
+        item(
+          id: c.name,
+          name: c.name,
+          category: c,
+          primaryColour: WardrobeColour.black,
+          formality: Formality.casual,
+        ),
+    ];
+    await pumpApp(tester, paths: paths, items: casual);
+    await openGaps(tester);
+    final smart = find.byKey(const Key('plan-formality-Smart'));
+    expect(
+      find.descendant(of: smart, matching: find.text('0')),
+      findsOneWidget,
+    );
+    await tester.tap(smart);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('gap-footwear:black:smart')), findsOneWidget);
+    expect(find.textContaining('You have no smart shoes'), findsOneWidget);
   });
 
   testApp('Add to wishlist stores a planned entry and hides the card', (

@@ -153,10 +153,17 @@ Not archived, condition not "Needs repair" ("unavailable"), primary colour not i
 Code: `lib/features/recommendations/engine/gap_analysis.dart` (pure Dart).
 
 ### Which outfit types are analysed
-Only types you actually wear: top + bottom + footwear if you own an available top or bottom, and dress/jumpsuit + footwear if you own an available dress or jumpsuit. If you own none of those, the screen says "Add some clothing first". A missing category alone never produces a suggestion.
+Only types you actually wear: top + bottom + footwear if you own an available top or bottom, and dress/jumpsuit + footwear if you own an available dress or jumpsuit. If you own none of those, the screen says "Add some clothing first".
 
 ### Candidate items
 Imaginary items for each category of the active templates (including outerwear, never accessories), in each formality level you already own (casual if none are recorded), and in these colours: each of your preferred colours (minus avoided ones), plus **one** neutral. All neutral colours score identically (a neutral goes with anything), so only the neutral you own fewest of in that category is tried (ties: the order of the colour list, so black first); if its suggestion is hidden by the wishlist or "Not for me", the next neutral takes its place. A test guards the assumption that all neutrals unlock the same number of outfits. Each candidate is added to the wardrobe and the outfits it would appear in are generated with the normal recommendation engine. When you own none of the suggested colour in that category, the explanation of a useful suggestion adds "You have no white shoes yet."
+
+### Planning for an event
+The Gaps page has optional "Plan for" Occasion and Formality pills (not saved; reset on restart). When set:
+- Only owned items that suit the event count: formality equal to the target or not recorded, and occasions including the target or none recorded. Outfit types still come from the whole wardrobe.
+- Suggestions use the target formality (instead of the levels you own), candidates are tagged with the occasion, and outfits are scored for it. Explanations end with "for work" etc.
+- **Starter set:** if no outfit can be made from the matching items and no single item fixes that, one neutral piece (marked Needed) is suggested for each missing required category of the first outfit type you wear (for example "You have no smart shoes for work yet."). With no target this uses the average formality of what you own, so a wardrobe of only tops gets bottom and shoe suggestions. Only the first outfit type is covered.
+- Hiding (wishlist or "Not for me") is keyed by category, colour and formality, so a dismissal applies to every event.
 
 ### Needed vs. useful
 - **Needed:** you cannot complete any outfit today and this item would make at least one possible. All valid outfits it enables are counted, whatever their score, so this works even when attributes are not filled in.
