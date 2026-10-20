@@ -21,6 +21,7 @@ class OutfitsScreen extends ConsumerStatefulWidget {
 class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
   bool _favouritesOnly = false;
   Formality? _formality;
+  Occasion? _occasion;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +54,25 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            _formalityChips(all),
+            _chipRow<Formality>(
+              all: all,
+              allLabel: 'All',
+              values: Formality.values,
+              label: (f) => f.label,
+              valueOf: (o) => averageFormality(o.items),
+              selected: _formality,
+              onSelect: (f) => setState(() => _formality = f),
+            ),
+            const SizedBox(height: 8),
+            _chipRow<Occasion>(
+              all: all,
+              allLabel: 'Any occasion',
+              values: Occasion.values,
+              label: (o) => o.label,
+              valueOf: (o) => o.outfit.occasion,
+              selected: _occasion,
+              onSelect: (o) => setState(() => _occasion = o),
+            ),
             const SizedBox(height: 8),
             Expanded(child: _list(outfits)),
           ],
@@ -62,27 +81,35 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
     );
   }
 
-  /// "All 7  Relaxed 1  Casual 3 ..." pills; one formality at a time.
-  Widget _formalityChips(List<OutfitWithItems> all) {
-    int count(Formality f) =>
-        all.where((o) => averageFormality(o.items) == f).length;
+  /// "All 7  Relaxed 1  Casual 3 ..." pills; one value at a time.
+  Widget _chipRow<T>({
+    required List<OutfitWithItems> all,
+    required String allLabel,
+    required List<T> values,
+    required String Function(T) label,
+    required T? Function(OutfitWithItems) valueOf,
+    required T? selected,
+    required ValueChanged<T?> onSelect,
+  }) {
+    int count(T v) => all.where((o) => valueOf(o) == v).length;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
           CountChip(
-            label: 'All',
+            label: allLabel,
             count: all.length,
-            selected: _formality == null,
-            onTap: () => setState(() => _formality = null),
+            selected: selected == null,
+            onTap: () => onSelect(null),
           ),
-          for (final f in Formality.values) ...[
+          for (final v in values) ...[
             const SizedBox(width: 8),
             CountChip(
-              label: f.label,
-              count: count(f),
-              selected: _formality == f,
-              onTap: () => setState(() => _formality = f),
+              key: Key('chip-$v'),
+              label: label(v),
+              count: count(v),
+              selected: selected == v,
+              onTap: () => onSelect(v),
             ),
           ],
         ],
@@ -97,7 +124,9 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
       final shown = [
         for (final o in all)
           if ((!_favouritesOnly || o.outfit.isFavourite) &&
-              (_formality == null || averageFormality(o.items) == _formality))
+              (_formality == null ||
+                  averageFormality(o.items) == _formality) &&
+              (_occasion == null || o.outfit.occasion == _occasion))
             o,
       ];
       if (shown.isEmpty) {
