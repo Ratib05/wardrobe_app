@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wardrobe_app/app/providers.dart';
+import 'package:wardrobe_app/app/widgets/count_chip.dart';
 import 'package:wardrobe_app/core/wardrobe_values.dart';
 
 import '../../helpers.dart';
@@ -69,6 +70,42 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('gap-footwear:black:smart')), findsOneWidget);
     expect(find.textContaining('You have no smart shoes'), findsOneWidget);
+  });
+
+  testApp('coverage names a missing occasion and tapping plans for it', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(
+      tester,
+      paths: paths,
+      items: [
+        item(
+          id: 't',
+          name: 'Shirt',
+          category: ClothingCategory.top,
+          occasions: {Occasion.work},
+        ),
+        item(
+          id: 'b',
+          name: 'Trousers',
+          category: ClothingCategory.bottom,
+          occasions: {Occasion.work},
+        ),
+        item(
+          id: 's',
+          name: 'Boots',
+          category: ClothingCategory.footwear,
+          occasions: {Occasion.casual},
+        ),
+      ],
+    );
+    await openGaps(tester);
+    expect(find.text('No shoes for work'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('coverage-work')));
+    await tester.pumpAndSettle();
+    final pill = find.byKey(const Key('plan-occasion-Work'));
+    expect(tester.widget<CountChip>(pill).selected, isTrue);
   });
 
   testApp('Add to wishlist stores a planned entry and hides the card', (

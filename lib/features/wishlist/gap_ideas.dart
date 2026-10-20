@@ -12,6 +12,9 @@ import '../../app/widgets/error_view.dart';
 import '../../core/wardrobe_values.dart';
 import '../wardrobe/wardrobe_providers.dart';
 import '../recommendations/engine/gap_analysis.dart';
+import '../recommendations/engine/scoring.dart' show RecommendationPreferences;
+import '../recommendations/recommendations_providers.dart'
+    show preferencesProvider;
 import 'gap_providers.dart';
 import 'wishlist_providers.dart';
 
@@ -118,12 +121,53 @@ class _GapIdeasState extends ConsumerState<GapIdeas> {
     );
   }
 
+  /// Occasions and seasons you dress for but cannot complete an outfit for.
+  /// Tapping an occasion plans for it below.
+  Widget _coverage() {
+    final items = ref.watch(wardrobeItemsProvider(false)).value ?? const [];
+    final prefs =
+        ref.watch(preferencesProvider).value ??
+        const RecommendationPreferences();
+    final gaps = coverageGaps(items, prefs);
+    if (gaps.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('COVERAGE', style: monoCaption(context)),
+        const SizedBox(height: 4),
+        for (final g in gaps)
+          ListTile(
+            key: Key('coverage-${(g.occasion ?? g.season)!.name}'),
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              g.title,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(g.detail),
+            trailing: g.occasion == null
+                ? null
+                : const Icon(Icons.chevron_right),
+            onTap: g.occasion == null
+                ? null
+                : () => setState(
+                    () => _target = (
+                      occasion: g.occasion,
+                      formality: _target.formality,
+                    ),
+                  ),
+          ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final results = ref.watch(gapSuggestionsProvider(_target));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [_planFor(), _results(results)],
+      children: [_coverage(), _planFor(), _results(results)],
     );
   }
 

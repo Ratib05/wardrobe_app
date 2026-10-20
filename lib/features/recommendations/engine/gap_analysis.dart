@@ -103,6 +103,121 @@ bool canAnalyseGaps(List<ClothingItem> items) => items.any(
           i.category == ClothingCategory.onePiece),
 );
 
+/// Outfit types you actually wear, judged from the categories you own.
+List<OutfitTemplate> _activeTemplates(Set<ClothingCategory> categories) => [
+  if (categories.contains(ClothingCategory.top) ||
+      categories.contains(ClothingCategory.bottom))
+    outfitTemplates[0],
+  if (categories.contains(ClothingCategory.onePiece)) outfitTemplates[1],
+];
+
+/// A whole occasion or season you dress for but cannot put an outfit
+/// together for.
+class CoverageGap {
+  const CoverageGap({
+    required this.title,
+    required this.detail,
+    this.occasion,
+    this.season,
+  });
+
+  final String title;
+  final String detail;
+  final Occasion? occasion;
+  final Season? season;
+}
+
+/// Occasions and seasons that your tops, bottoms, dresses and shoes are
+/// tagged for, but that no outfit type can be completed for. An item with
+/// nothing recorded suits everything (as in "Plan for").
+List<CoverageGap> coverageGaps(
+  List<ClothingItem> items,
+  RecommendationPreferences preferences,
+) {
+  final eligible = [
+    for (final i in items)
+      if (isEligible(i, preferences)) i,
+  ];
+  final active = _activeTemplates({for (final i in eligible) i.category});
+  if (active.isEmpty) return const [];
+  final worn = {for (final t in active) ...t.required};
+  final core = eligible.where((i) => worn.contains(i.category)).toList();
+
+  /// Null when covered, else the gap for the outfit type nearest to complete.
+  (String, String)? missingFor(bool Function(ClothingItem) suits, String on) {
+    OutfitTemplate? nearest;
+    var fewest = 1 << 30;
+    Map<ClothingCategory, int>? nearestCounts;
+    for (final t in active) {
+      final counts = {
+        for (final c in t.required)
+          c: core.where((i) => i.category == c && suits(i)).length,
+      };
+      final missing = counts.values.where((n) => n == 0).length;
+      if (missing < fewest) {
+        fewest = missing;
+        nearest = t;
+        nearestCounts = counts;
+      }
+    }
+    if (fewest == 0) return null;
+    final ordered = (nearest!.required.toList()
+      ..sort((a, b) => a.index.compareTo(b.index)));
+    final lacking = [
+      for (final c in ordered)
+        if (nearestCounts![c] == 0) _plural(c),
+    ];
+    final have = [
+      for (final c in ordered)
+        if (nearestCounts![c]! > 0) _countNoun(c, nearestCounts[c]!),
+    ];
+    return (
+      'No ${_list(lacking)} for $on',
+      have.isEmpty
+          ? 'Nothing you own suits $on yet.'
+          : 'You have ${_list(have)} for $on.',
+    );
+  }
+
+  final gaps = <CoverageGap>[];
+  for (final o in Occasion.values) {
+    if (!core.any((i) => i.occasions.contains(o))) continue;
+    final m = missingFor(
+      (i) => i.occasions.isEmpty || i.occasions.contains(o),
+      o.label.toLowerCase(),
+    );
+    if (m != null) {
+      gaps.add(CoverageGap(title: m.$1, detail: m.$2, occasion: o));
+    }
+  }
+  for (final s in Season.values) {
+    if (!core.any((i) => i.seasons.contains(s))) continue;
+    final m = missingFor(
+      (i) => i.seasons.isEmpty || i.seasons.contains(s),
+      s.label.toLowerCase(),
+    );
+    if (m != null) {
+      gaps.add(CoverageGap(title: m.$1, detail: m.$2, season: s));
+    }
+  }
+  final coats = eligible.where((i) => i.category == ClothingCategory.outerwear);
+  if (core.any((i) => i.seasons.contains(Season.winter)) &&
+      !coats.any(
+        (i) => i.seasons.isEmpty || i.seasons.contains(Season.winter),
+      )) {
+    gaps.add(
+      CoverageGap(
+        title: 'No outerwear for winter',
+        detail: coats.isEmpty
+            ? 'You have no outerwear.'
+            : 'None of your ${coats.length} coats is for winter.',
+        season: Season.winter,
+      ),
+    );
+  }
+  return gaps;
+}
+
 List<GapSuggestion> analyseGaps(GapRequest request) {
   final eligible = [
     for (final i in request.items)
@@ -123,12 +238,7 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
   ];
 
   // Outfit types you actually wear.
-  final active = <OutfitTemplate>[
-    if (categories.contains(ClothingCategory.top) ||
-        categories.contains(ClothingCategory.bottom))
-      outfitTemplates[0],
-    if (categories.contains(ClothingCategory.onePiece)) outfitTemplates[1],
-  ];
+  final active = _activeTemplates(categories);
   if (active.isEmpty) return const [];
 
   final candidateCategories = <ClothingCategory>{

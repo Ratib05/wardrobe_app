@@ -169,6 +169,14 @@ Imaginary items for each category of the active templates (including outerwear, 
 - **Example outfits:** each suggestion carries up to three of the outfits it would create, best score first, one per distinct combination (the best coat variant is kept). The imagined item has an id starting `gap:`.
 - **No look-alikes:** within a category, an idea is dropped when its colour is alike (`coloursAlike`) to one already chosen.
 
+### Coverage
+`coverageGaps` lists occasions and seasons you dress for but cannot complete an outfit for:
+- Only occasions and seasons tagged on at least one of your tops, bottoms, dresses or shoes are checked (coat-only tags such as Lounge are skipped).
+- An item with nothing recorded suits everything, as in "Plan for".
+- An occasion or season is covered when some outfit type you wear has an item in every required category that suits it. Otherwise the gap names what is missing and what you do have, for the outfit type nearest to complete ("No shoes for work. You have 14 tops and 1 bottom for work.").
+- Winter also needs a coat: "No outerwear for winter" when winter clothes exist and no coat suits winter.
+- Other seasons never ask for a coat. Formality is not considered.
+
 ### Planning for an event
 The Gaps page has optional "Plan for" Occasion and Formality pills (not saved; reset on restart). When set:
 - Only owned items that suit the event count: formality equal to the target or not recorded, and occasions including the target or none recorded. Outfit types still come from the whole wardrobe.

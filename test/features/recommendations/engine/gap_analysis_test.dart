@@ -363,6 +363,83 @@ void main() {
     expect(bases, hasLength(maxExamples)); // coat variants are not repeats
   });
 
+  group('coverage', () {
+    ClothingItem tagged(
+      String id,
+      ClothingCategory c, {
+      Set<Occasion> occasions = const {},
+      Set<Season> seasons = const {},
+    }) => item(id: id, category: c, occasions: occasions, seasons: seasons);
+    const work = {Occasion.work};
+    const casual = {Occasion.casual};
+
+    test('names what a tagged occasion is missing', () {
+      final gaps = coverageGaps([
+        tagged('t1', ClothingCategory.top, occasions: work),
+        tagged('t2', ClothingCategory.top, occasions: work),
+        tagged('b', ClothingCategory.bottom, occasions: work),
+        tagged('s', ClothingCategory.footwear, occasions: casual),
+      ], const RecommendationPreferences());
+      final g = gaps.singleWhere((g) => g.occasion == Occasion.work);
+      expect(g.title, 'No shoes for work');
+      expect(g.detail, 'You have 2 tops and 1 bottom for work.');
+    });
+
+    test('untagged items count as suiting; nothing missing, no gap', () {
+      final gaps = coverageGaps([
+        tagged('t', ClothingCategory.top, occasions: work),
+        tagged('b', ClothingCategory.bottom),
+        tagged('s', ClothingCategory.footwear),
+      ], const RecommendationPreferences());
+      expect(gaps, isEmpty);
+    });
+
+    test('an occasion only coats are tagged for is skipped', () {
+      final gaps = coverageGaps([
+        tagged('t', ClothingCategory.top),
+        tagged('b', ClothingCategory.bottom),
+        tagged('s', ClothingCategory.footwear),
+        tagged('c', ClothingCategory.outerwear, occasions: {Occasion.lounge}),
+      ], const RecommendationPreferences());
+      expect(gaps, isEmpty);
+    });
+
+    test('a dress outfit covers an occasion', () {
+      final gaps = coverageGaps([
+        tagged('d', ClothingCategory.onePiece, occasions: work),
+        tagged('s', ClothingCategory.footwear),
+      ], const RecommendationPreferences());
+      expect(gaps, isEmpty);
+    });
+
+    test('winter needs outerwear that suits it', () {
+      final base = [
+        tagged('t', ClothingCategory.top, seasons: {Season.winter}),
+        tagged('b', ClothingCategory.bottom),
+        tagged('s', ClothingCategory.footwear),
+      ];
+      CoverageGap? winter(List<ClothingItem> items) => coverageGaps(
+        items,
+        const RecommendationPreferences(),
+      ).where((g) => g.title == 'No outerwear for winter').firstOrNull;
+      expect(winter(base), isNotNull);
+      expect(
+        winter([
+          ...base,
+          tagged('c', ClothingCategory.outerwear, seasons: {Season.summer}),
+        ])?.detail,
+        'None of your 1 coats is for winter.',
+      );
+      expect(
+        winter([
+          ...base,
+          tagged('c', ClothingCategory.outerwear, seasons: {Season.winter}),
+        ]),
+        isNull,
+      );
+    });
+  });
+
   test('archived items are ignored', () {
     final items = [
       item(id: 't', category: ClothingCategory.top, isArchived: true),
