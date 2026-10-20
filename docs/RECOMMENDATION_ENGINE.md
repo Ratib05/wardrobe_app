@@ -164,6 +164,8 @@ Imaginary items for each category of the active templates (including outerwear, 
 - **Outfits are counted once:** versions that differ only in the coat count as one, and a coat never appears in "pairs with".
 - **Coats** are suggested only when you own none at that formality (or with none recorded), and are listed after the other ideas. The explanation reads "You have no casual outerwear yet. It would go over N of your outfits" and the card shows "Over N outfits".
 - **Explanation:** when the category has at most half as many items as every other required category of an outfit type, it opens with "You have only 1 pair of shoes for 36 tops and 6 bottoms." Then "Goes with all 6 of your bottoms and 15 of your 36 tops: 90 new outfits", then the "You have no black shoes yet." note where it applies.
+- **Contrasting colour (tops and bottoms):** instead of "the neutral you own fewest of", the neutral that contrasts with most of the other garment is suggested. Two colours contrast when their lightness (simple luma from the colour's RGB) differs by at least 64 of 255; ties go to the larger average difference, then the neutral owned fewest of, then list order. Multicolour and items without a colour are ignored; with nothing to compare, the old rule applies. The explanation then ends "Contrasts with 5 of your 6 bottoms." in place of "You have no … yet."
+- **Typical style:** the imagined item carries the most common style tag among the owned items it would be worn with (ties: tag order), so its style score reflects your taste instead of a neutral default.
 - **No look-alikes:** within a category, an idea is dropped when its colour is alike (`coloursAlike`) to one already chosen.
 
 ### Planning for an event

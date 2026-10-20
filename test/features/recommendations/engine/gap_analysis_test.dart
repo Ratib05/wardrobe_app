@@ -263,6 +263,79 @@ void main() {
     });
   });
 
+  group('contrasting colours', () {
+    List<ClothingItem> withBottoms(WardrobeColour? colour) => [
+      for (var i = 0; i < 3; i++)
+        item(
+          id: 't$i',
+          category: ClothingCategory.top,
+          primaryColour: WardrobeColour.grey,
+          formality: Formality.casual,
+        ),
+      for (var i = 0; i < 3; i++)
+        item(
+          id: 'b$i',
+          category: ClothingCategory.bottom,
+          primaryColour: colour,
+          formality: Formality.casual,
+        ),
+      neutral('s', ClothingCategory.footwear),
+    ];
+    GapSuggestion top(List<ClothingItem> items) => analyseGaps(
+      GapRequest(items: items),
+    ).firstWhere((s) => s.category == ClothingCategory.top);
+
+    test('dark bottoms get a light top, light bottoms a dark one', () {
+      expect(
+        top(withBottoms(WardrobeColour.charcoal)).colour,
+        isIn([WardrobeColour.white, WardrobeColour.cream]),
+      );
+      expect(
+        top(withBottoms(WardrobeColour.cream)).colour,
+        isIn([
+          WardrobeColour.black,
+          WardrobeColour.darkBrown,
+          WardrobeColour.charcoal,
+        ]),
+      );
+    });
+
+    test('the explanation says what it contrasts with', () {
+      expect(
+        top(withBottoms(WardrobeColour.charcoal)).explanation,
+        endsWith('Contrasts with all 3 of your bottoms.'),
+      );
+    });
+
+    test('bottoms with no colour fall back to the fewest-owned neutral', () {
+      final s = top(withBottoms(null));
+      expect(s.colour, WardrobeColour.black); // no black tops; list order
+      expect(s.explanation, isNot(contains('Contrasts')));
+    });
+  });
+
+  test('typicalStyle picks the most common tag, ties by enum order', () {
+    expect(typicalStyle(const []), isNull);
+    ClothingItem styled(Set<StyleTag> t) =>
+        item(id: '${t.hashCode}', category: ClothingCategory.top, styleTags: t);
+    expect(
+      typicalStyle([
+        styled({StyleTag.minimal}),
+        styled({StyleTag.minimal, StyleTag.classic}),
+      ]),
+      StyleTag.minimal,
+    );
+    expect(
+      typicalStyle([
+        styled({StyleTag.minimal}),
+        styled({StyleTag.classic}),
+      ]),
+      StyleTag.values.firstWhere(
+        (t) => t == StyleTag.minimal || t == StyleTag.classic,
+      ),
+    );
+  });
+
   test('archived items are ignored', () {
     final items = [
       item(id: 't', category: ClothingCategory.top, isArchived: true),

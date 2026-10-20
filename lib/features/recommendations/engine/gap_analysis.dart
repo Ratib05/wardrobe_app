@@ -165,12 +165,47 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
     int ownedIn(WardrobeColour c) => owned
         .where((i) => i.category == category && i.primaryColour == c)
         .length;
-    // The neutral you own fewest of in this category first (ties: list order).
+    // Tops and bottoms: the neutral that contrasts with most of the other
+    // one. Otherwise (and when nothing has a colour) the neutral you own
+    // fewest of in this category. Ties: list order.
+    final opposite = switch (category) {
+      ClothingCategory.top => ClothingCategory.bottom,
+      ClothingCategory.bottom => ClothingCategory.top,
+      _ => null,
+    };
+    final counterparts = [
+      for (final i in owned)
+        if (i.category == opposite &&
+            i.primaryColour != null &&
+            i.primaryColour != WardrobeColour.multicolour)
+          colourLuma(i.primaryColour!),
+    ];
+    int contrasting(WardrobeColour c) => counterparts
+        .where((l) => (l - colourLuma(c)).abs() >= _contrastLuma)
+        .length;
+    double meanGap(WardrobeColour c) =>
+        counterparts.fold(0.0, (s, l) => s + (l - colourLuma(c)).abs()) /
+        counterparts.length;
     final neutralsByOwned = [...plainNeutrals]
       ..sort((a, b) {
+        if (counterparts.isNotEmpty) {
+          var c = contrasting(b).compareTo(contrasting(a));
+          if (c != 0) return c;
+          c = meanGap(b).compareTo(meanGap(a));
+          if (c != 0) return c;
+        }
         final c = ownedIn(a).compareTo(ownedIn(b));
         return c != 0 ? c : a.index.compareTo(b.index);
       });
+    String? contrastNote(WardrobeColour c) {
+      final k = counterparts.isEmpty ? 0 : contrasting(c);
+      if (k == 0) return null;
+      final n = owned.where((i) => i.category == opposite).length;
+      return k == n
+          ? 'Contrasts with all $n of your ${_plural(opposite!)}.'
+          : 'Contrasts with $k of your $n ${_plural(opposite!)}.';
+    }
+
     for (final formality in Formality.values) {
       if (!formalities.contains(formality)) continue;
       // A coat is only worth suggesting when you own none at this formality.
@@ -184,13 +219,22 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
       }
       bool hidden(WardrobeColour c) =>
           request.excludedKeys.contains(gapKey(category, c, formality));
+      final pickedNeutral = neutralsByOwned
+          .where((c) => !hidden(c))
+          .firstOrNull;
       final colours = [
         ...WardrobeColour.values.where(
           (c) => preferredCandidates.contains(c) && !hidden(c),
         ),
-        ?neutralsByOwned.where((c) => !hidden(c)).firstOrNull,
+        ?pickedNeutral,
       ];
       for (final colour in colours) {
+        final note =
+            (colour == pickedNeutral ? contrastNote(colour) : null) ??
+            (ownedIn(colour) == 0
+                ? 'You have no ${colour.label.toLowerCase()} '
+                      '${category.labelPlural.toLowerCase()} yet.'
+                : null);
         final suggestion = _evaluate(
           request,
           owned,
@@ -199,7 +243,7 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
           colour,
           formality,
           canMakeOutfits,
-          ownedIn(colour),
+          note,
         );
         if (suggestion != null) found.add(suggestion);
       }
@@ -287,6 +331,31 @@ GapSuggestion _starter(
       '${occasion == null ? '' : ' for ${occasion.label.toLowerCase()}'} yet.',
 );
 
+/// Lightness 0 (black) to 255 (white).
+// ponytail: simple Rec.601 luma, not perceptual; fine for light vs dark.
+double colourLuma(WardrobeColour c) =>
+    0.299 * ((c.argb >> 16) & 0xFF) +
+    0.587 * ((c.argb >> 8) & 0xFF) +
+    0.114 * (c.argb & 0xFF);
+
+/// Two colours contrast when their lightness differs by at least this.
+const _contrastLuma = 64;
+
+/// The style tag most items share (ties: enum order), or null if none.
+StyleTag? typicalStyle(Iterable<ClothingItem> items) {
+  final counts = <StyleTag, int>{};
+  for (final i in items) {
+    for (final t in i.styleTags) {
+      counts[t] = (counts[t] ?? 0) + 1;
+    }
+  }
+  StyleTag? best;
+  for (final t in StyleTag.values) {
+    if ((counts[t] ?? 0) > (counts[best] ?? 0)) best = t;
+  }
+  return best;
+}
+
 String _plural(ClothingCategory c) => switch (c) {
   ClothingCategory.footwear => 'shoes',
   ClothingCategory.onePiece => 'dresses',
@@ -370,9 +439,17 @@ GapSuggestion? _evaluate(
   WardrobeColour colour,
   Formality formality,
   bool canMakeOutfits,
-  int ownedOfColour,
+  String? colourNote,
 ) {
   final key = gapKey(category, colour, formality);
+  // Take the usual style of the items it would be worn with, so its score
+  // reflects the user's taste rather than a blank item.
+  final worn = {
+    for (final t in active)
+      if (category == ClothingCategory.outerwear ||
+          t.required.contains(category))
+        ...t.required,
+  }..remove(category);
   final title =
       '${colour.label} ${formality.label.toLowerCase()} '
       '${category.label.toLowerCase()}';
@@ -382,6 +459,7 @@ GapSuggestion? _evaluate(
     category: category,
     primaryColour: colour,
     formality: formality,
+    styleTags: {?typicalStyle(owned.where((i) => worn.contains(i.category)))},
     occasions: {?request.occasion},
     createdAt: DateTime.utc(2000),
     updatedAt: DateTime.utc(2000),
@@ -470,8 +548,7 @@ GapSuggestion? _evaluate(
         '${shortage == null ? '' : '$shortage '}'
         '${_pairsWith(category, active, counts, goodPartners)}: '
         '$count new ${count == 1 ? 'outfit' : 'outfits'}$forEvent.'
-        '${ownedOfColour == 0 ? ' You have no ${colour.label.toLowerCase()} '
-                  '${category.labelPlural.toLowerCase()} yet.' : ''}';
+        '${colourNote == null ? '' : ' $colourNote'}';
   }
   return GapSuggestion(
     category: category,
