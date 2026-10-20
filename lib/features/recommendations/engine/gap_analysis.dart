@@ -137,9 +137,11 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
           !excluded.contains(c))
         c,
   ];
+  // Coats are layers: they don't decide which formality levels are suggested.
   final ownedFormalities = {
     for (final i in owned)
-      if (i.formality != null) i.formality!,
+      if (i.formality != null && i.category != ClothingCategory.outerwear)
+        i.formality!,
   };
   final formalities = request.formality != null
       ? {request.formality!}
@@ -171,6 +173,15 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
       });
     for (final formality in Formality.values) {
       if (!formalities.contains(formality)) continue;
+      // A coat is only worth suggesting when you own none at this formality.
+      if (category == ClothingCategory.outerwear &&
+          owned.any(
+            (i) =>
+                i.category == category &&
+                (i.formality == null || i.formality == formality),
+          )) {
+        continue;
+      }
       bool hidden(WardrobeColour c) =>
           request.excludedKeys.contains(gapKey(category, c, formality));
       final colours = [
@@ -183,6 +194,7 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
         final suggestion = _evaluate(
           request,
           owned,
+          active,
           category,
           colour,
           formality,
@@ -221,6 +233,11 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
   found.sort((a, b) {
     var c = a.kind.index.compareTo(b.kind.index); // needed first
     if (c != 0) return c;
+    // Coats are an extra layer, so they come after the other ideas.
+    c = (a.category == ClothingCategory.outerwear ? 1 : 0).compareTo(
+      b.category == ClothingCategory.outerwear ? 1 : 0,
+    );
+    if (c != 0) return c;
     c = b.newOutfits.compareTo(a.newOutfits);
     if (c != 0) return c;
     c = b.partnerCount.compareTo(a.partnerCount);
@@ -236,6 +253,12 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
   for (final s in found) {
     final n = perCategory[s.category] ?? 0;
     if (n >= request.perCategory) continue;
+    // Not two ideas that look alike (same colour or a near match).
+    if (result.any(
+      (r) => r.category == s.category && coloursAlike(r.colour, s.colour),
+    )) {
+      continue;
+    }
     perCategory[s.category] = n + 1;
     result.add(s);
     if (result.length >= request.limit) break;
@@ -264,9 +287,85 @@ GapSuggestion _starter(
       '${occasion == null ? '' : ' for ${occasion.label.toLowerCase()}'} yet.',
 );
 
+String _plural(ClothingCategory c) => switch (c) {
+  ClothingCategory.footwear => 'shoes',
+  ClothingCategory.onePiece => 'dresses',
+  _ => c.labelPlural.toLowerCase(),
+};
+
+String _singular(ClothingCategory c) => switch (c) {
+  ClothingCategory.footwear => 'pair of shoes',
+  ClothingCategory.onePiece => 'dress',
+  _ => c.label.toLowerCase(),
+};
+
+String _countNoun(ClothingCategory c, int n) => n == 1
+    ? '1 ${_singular(c)}'
+    : '$n ${c == ClothingCategory.footwear ? 'pairs of shoes' : _plural(c)}';
+
+String _list(List<String> parts) => parts.length < 2
+    ? parts.join()
+    : '${parts.sublist(0, parts.length - 1).join(', ')} and ${parts.last}';
+
+/// Names the category holding the wardrobe back ("only 1 pair of shoes for
+/// 36 tops"), or null when no category is clearly short.
+String? _bottleneck(
+  ClothingCategory category,
+  List<OutfitTemplate> active,
+  Map<ClothingCategory, int> counts,
+) {
+  final mine = counts[category] ?? 0;
+  for (final t in active) {
+    if (!t.required.contains(category)) continue;
+    final others = (t.required.toList()..remove(category))
+      ..sort((a, b) => a.index.compareTo(b.index));
+    if (others.isEmpty || others.any((o) => (counts[o] ?? 0) == 0)) continue;
+    if (mine * 2 >
+        others.map((o) => counts[o]!).reduce((a, b) => a < b ? a : b)) {
+      continue;
+    }
+    final them = _list([for (final o in others) _countNoun(o, counts[o]!)]);
+    return mine == 0
+        ? 'You have no ${_plural(category)} for $them.'
+        : 'You have only ${_countNoun(category, mine)} for $them.';
+  }
+  return null;
+}
+
+/// "Goes with all 6 of your bottoms and 20 of your 36 tops".
+String _pairsWith(
+  ClothingCategory category,
+  List<OutfitTemplate> active,
+  Map<ClothingCategory, int> counts,
+  List<ClothingItem> partners,
+) {
+  final needed = {
+    for (final t in active)
+      if (t.required.contains(category)) ...t.required,
+  }..remove(category);
+  final parts = <String>[];
+  for (final c
+      in (needed.toList()..sort((a, b) => a.index.compareTo(b.index)))) {
+    final k = partners.where((p) => p.category == c).length;
+    final n = counts[c] ?? 0;
+    if (k == 0) continue;
+    parts.add(
+      k < n
+          ? '$k of your $n ${_plural(c)}'
+          : n == 1
+          ? 'your only ${_singular(c)}'
+          : 'all $n of your ${_plural(c)}',
+    );
+  }
+  return parts.isEmpty
+      ? 'Would pair with ${partners.length} of your items'
+      : 'Goes with ${_list(parts)}';
+}
+
 GapSuggestion? _evaluate(
   GapRequest request,
   List<ClothingItem> owned,
+  List<OutfitTemplate> active,
   ClothingCategory category,
   WardrobeColour colour,
   Formality formality,
@@ -305,7 +404,9 @@ GapSuggestion? _evaluate(
     final byId = <String, ClothingItem>{};
     for (final r in recs) {
       for (final i in r.items) {
-        if (i.id == imaginary.id) continue;
+        if (i.id == imaginary.id || i.category == ClothingCategory.outerwear) {
+          continue;
+        }
         counts[i.id] = (counts[i.id] ?? 0) + 1;
         byId[i.id] = i;
       }
@@ -318,21 +419,32 @@ GapSuggestion? _evaluate(
     return [for (final id in ids) byId[id]!];
   }
 
+  // A coat is not a new outfit, so outfits that differ only in the coat count
+  // once.
+  int distinct(Iterable<Recommendation> recs) => {
+    for (final r in recs)
+      outfitFingerprint([
+        for (final i in r.items)
+          if (i.category != ClothingCategory.outerwear) i.id,
+      ]),
+  }.length;
+
   if (!canMakeOutfits) {
     if (outfits.isEmpty) return null;
     final neededPartners = partners(outfits);
+    final count = distinct(outfits);
     return GapSuggestion(
       category: category,
       colour: colour,
       formality: formality,
       kind: GapKind.needed,
-      newOutfits: outfits.length,
+      newOutfits: count,
       partnerCount: neededPartners.length,
       partners: neededPartners,
       title: title,
       explanation:
           "You can't put together a complete outfit yet. This would make "
-          '${outfits.length} ${outfits.length == 1 ? 'outfit' : 'outfits'} '
+          '$count ${count == 1 ? 'outfit' : 'outfits'} '
           'possible$forEvent.',
     );
   }
@@ -340,23 +452,37 @@ GapSuggestion? _evaluate(
   final good = outfits
       .where((r) => r.label != MatchLabel.possible)
       .toList(growable: false);
-  if (good.length < request.minNewOutfits) return null;
+  final count = distinct(good);
+  if (count < request.minNewOutfits) return null;
   final goodPartners = partners(good);
-  final partnerCount = goodPartners.length;
+  final String explanation;
+  if (category == ClothingCategory.outerwear) {
+    explanation =
+        'You have no ${formality.label.toLowerCase()} outerwear yet. '
+        'It would go over $count of your outfits$forEvent.';
+  } else {
+    final counts = {
+      for (final c in ClothingCategory.values)
+        c: owned.where((i) => i.category == c).length,
+    };
+    final shortage = _bottleneck(category, active, counts);
+    explanation =
+        '${shortage == null ? '' : '$shortage '}'
+        '${_pairsWith(category, active, counts, goodPartners)}: '
+        '$count new ${count == 1 ? 'outfit' : 'outfits'}$forEvent.'
+        '${ownedOfColour == 0 ? ' You have no ${colour.label.toLowerCase()} '
+                  '${category.labelPlural.toLowerCase()} yet.' : ''}';
+  }
   return GapSuggestion(
     category: category,
     colour: colour,
     formality: formality,
     kind: GapKind.useful,
-    newOutfits: good.length,
-    partnerCount: partnerCount,
+    newOutfits: count,
+    partnerCount: goodPartners.length,
     partners: goodPartners,
     title: title,
-    explanation:
-        'Would pair with $partnerCount of your items, adding '
-        '${good.length} good outfits$forEvent.'
-        '${ownedOfColour == 0 ? ' You have no ${colour.label.toLowerCase()} '
-                  '${category.labelPlural.toLowerCase()} yet.' : ''}',
+    explanation: explanation,
   );
 }
 

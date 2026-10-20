@@ -159,6 +159,13 @@ Only types you actually wear: top + bottom + footwear if you own an available to
 ### Candidate items
 Imaginary items for each category of the active templates (including outerwear, never accessories), in each formality level you already own (casual if none are recorded), and in these colours: each of your preferred colours (minus avoided ones), plus **one** neutral. All neutral colours score identically (a neutral goes with anything), so only the neutral you own fewest of in that category is tried (ties: the order of the colour list, so black first); if its suggestion is hidden by the wishlist or "Not for me", the next neutral takes its place. A test guards the assumption that all neutrals unlock the same number of outfits. Each candidate is added to the wardrobe and the outfits it would appear in are generated with the normal recommendation engine. When you own none of the suggested colour in that category, the explanation of a useful suggestion adds "You have no white shoes yet."
 
+### Counts, coats and explanations
+- **Formality levels** are taken from owned items other than outerwear (coats are layers).
+- **Outfits are counted once:** versions that differ only in the coat count as one, and a coat never appears in "pairs with".
+- **Coats** are suggested only when you own none at that formality (or with none recorded), and are listed after the other ideas. The explanation reads "You have no casual outerwear yet. It would go over N of your outfits" and the card shows "Over N outfits".
+- **Explanation:** when the category has at most half as many items as every other required category of an outfit type, it opens with "You have only 1 pair of shoes for 36 tops and 6 bottoms." Then "Goes with all 6 of your bottoms and 15 of your 36 tops: 90 new outfits", then the "You have no black shoes yet." note where it applies.
+- **No look-alikes:** within a category, an idea is dropped when its colour is alike (`coloursAlike`) to one already chosen.
+
 ### Planning for an event
 The Gaps page has optional "Plan for" Occasion and Formality pills (not saved; reset on restart). When set:
 - Only owned items that suit the event count: formality equal to the target or not recorded, and occasions including the target or none recorded. Outfit types still come from the whole wardrobe.

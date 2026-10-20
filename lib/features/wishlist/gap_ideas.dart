@@ -24,7 +24,9 @@ class GapIdeas extends ConsumerStatefulWidget {
   ConsumerState<GapIdeas> createState() => _GapIdeasState();
 
   static bool _isStrong(GapSuggestion s) =>
-      s.kind == GapKind.needed || s.newOutfits >= strongIdeaMinOutfits;
+      s.kind == GapKind.needed ||
+      (s.category != ClothingCategory.outerwear &&
+          s.newOutfits >= strongIdeaMinOutfits);
 }
 
 class _GapIdeasState extends ConsumerState<GapIdeas> {
@@ -232,6 +234,8 @@ class _IdeaCard extends StatelessWidget {
                     child: Text(
                       s.kind == GapKind.needed
                           ? 'Needed'
+                          : s.category == ClothingCategory.outerwear
+                          ? 'Over ${s.newOutfits} outfits'
                           : '+${s.newOutfits} new outfits',
                       style: TextStyle(
                         fontSize: 12,

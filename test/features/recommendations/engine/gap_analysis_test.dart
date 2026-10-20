@@ -176,6 +176,93 @@ void main() {
     });
   });
 
+  group('honest counts and reasons', () {
+    List<ClothingItem> wardrobe({int coats = 0, Formality? coatFormality}) => [
+      for (var i = 0; i < 3; i++) neutral('t$i', ClothingCategory.top),
+      for (var i = 0; i < 3; i++) neutral('b$i', ClothingCategory.bottom),
+      neutral('s', ClothingCategory.footwear),
+      for (var i = 0; i < coats; i++)
+        item(
+          id: 'c$i',
+          category: ClothingCategory.outerwear,
+          primaryColour: WardrobeColour.black,
+          formality: coatFormality ?? Formality.casual,
+        ),
+    ];
+    GapSuggestion idea(List<GapSuggestion> r, ClothingCategory c) =>
+        r.firstWhere((s) => s.category == c);
+
+    test('coat variants do not multiply the outfit count', () {
+      final shoes = idea(
+        analyseGaps(GapRequest(items: wardrobe(coats: 2))),
+        ClothingCategory.footwear,
+      );
+      expect(shoes.newOutfits, 9); // 3 tops x 3 bottoms, not x3 for coats
+      expect(shoes.explanation, contains('9 new outfits'));
+      expect(
+        shoes.partners.any((p) => p.category == ClothingCategory.outerwear),
+        isFalse,
+      );
+    });
+
+    test('a coat is suggested only when none is owned at that formality', () {
+      final owned = analyseGaps(GapRequest(items: wardrobe(coats: 1)));
+      expect(
+        owned.any((s) => s.category == ClothingCategory.outerwear),
+        isFalse,
+      );
+
+      final none = analyseGaps(GapRequest(items: wardrobe()));
+      final coat = none.singleWhere(
+        (s) => s.category == ClothingCategory.outerwear,
+      );
+      expect(none.last, coat); // listed after the other ideas
+      expect(coat.explanation, startsWith('You have no casual outerwear yet.'));
+      expect(coat.explanation, contains('It would go over 9 of your outfits'));
+    });
+
+    test('coats do not decide which formality levels are suggested', () {
+      final result = analyseGaps(
+        GapRequest(items: wardrobe(coats: 1, coatFormality: Formality.relaxed)),
+      );
+      expect(result.every((s) => s.formality == Formality.casual), isTrue);
+    });
+
+    test('the short category is named', () {
+      final result = analyseGaps(GapRequest(items: wardrobe()));
+      expect(
+        idea(result, ClothingCategory.footwear).explanation,
+        startsWith('You have only 1 pair of shoes for 3 tops and 3 bottoms.'),
+      );
+      expect(
+        idea(result, ClothingCategory.bottom).explanation,
+        isNot(contains('You have only')),
+      );
+    });
+
+    test('ideas in one category are not alike in colour', () {
+      final result = analyseGaps(
+        GapRequest(
+          items: [
+            plain('t', ClothingCategory.top),
+            plain('b', ClothingCategory.bottom),
+          ],
+          preferences: const RecommendationPreferences(
+            preferredColours: {WardrobeColour.white, WardrobeColour.cream},
+          ),
+        ),
+      );
+      final colours = result
+          .where((s) => s.category == ClothingCategory.footwear)
+          .map((s) => s.colour)
+          .toSet();
+      expect(
+        colours.containsAll({WardrobeColour.white, WardrobeColour.cream}),
+        isFalse,
+      );
+    });
+  });
+
   test('archived items are ignored', () {
     final items = [
       item(id: 't', category: ClothingCategory.top, isArchived: true),
