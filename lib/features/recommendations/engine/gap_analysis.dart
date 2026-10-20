@@ -62,6 +62,8 @@ class GapRequest {
     this.minNewOutfits = 3,
     this.limit = 10,
     this.perCategory = 2,
+    this.occasion,
+    this.formality,
   });
 
   final List<ClothingItem> items;
@@ -72,6 +74,11 @@ class GapRequest {
   final int minNewOutfits;
   final int limit;
   final int perCategory;
+
+  /// The event being planned for. Only owned items that suit it (or have no
+  /// value recorded) count, and suggestions are made for it.
+  final Occasion? occasion;
+  final Formality? formality;
 }
 
 const _unlimited = 1 << 30;
@@ -87,11 +94,23 @@ bool canAnalyseGaps(List<ClothingItem> items) => items.any(
 );
 
 List<GapSuggestion> analyseGaps(GapRequest request) {
-  final owned = [
+  final eligible = [
     for (final i in request.items)
       if (isEligible(i, request.preferences)) i,
   ];
-  final categories = {for (final i in owned) i.category};
+  // Outfit types come from the whole wardrobe; everything else only from the
+  // items that suit the event being planned.
+  final categories = {for (final i in eligible) i.category};
+  final owned = [
+    for (final i in eligible)
+      if ((request.formality == null ||
+              i.formality == null ||
+              i.formality == request.formality) &&
+          (request.occasion == null ||
+              i.occasions.isEmpty ||
+              i.occasions.contains(request.occasion)))
+        i,
+  ];
 
   // Outfit types you actually wear.
   final active = <OutfitTemplate>[
@@ -122,7 +141,9 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
     for (final i in owned)
       if (i.formality != null) i.formality!,
   };
-  final formalities = ownedFormalities.isEmpty
+  final formalities = request.formality != null
+      ? {request.formality!}
+      : ownedFormalities.isEmpty
       ? {Formality.casual}
       : ownedFormalities;
 
@@ -130,6 +151,7 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
     RecommendationRequest(
       items: owned,
       preferences: request.preferences,
+      occasion: request.occasion,
       limit: _unlimited,
     ),
   );
@@ -172,6 +194,29 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
     }
   }
 
+  // Nothing can be completed by one item: suggest the basics of the main
+  // outfit type that are missing.
+  // ponytail: only the first outfit type you wear; add dress outfits when
+  // someone needs both.
+  if (!canMakeOutfits && found.isEmpty) {
+    final formality =
+        request.formality ?? averageFormality(owned) ?? Formality.casual;
+    for (final category in ClothingCategory.values) {
+      if (!active.first.required.contains(category) ||
+          owned.any((i) => i.category == category)) {
+        continue;
+      }
+      final colour = plainNeutrals
+          .where(
+            (c) =>
+                !request.excludedKeys.contains(gapKey(category, c, formality)),
+          )
+          .firstOrNull;
+      if (colour == null) continue;
+      found.add(_starter(category, colour, formality, request.occasion));
+    }
+  }
+
   final preferred = request.preferences.preferredColours;
   found.sort((a, b) {
     var c = a.kind.index.compareTo(b.kind.index); // needed first
@@ -198,6 +243,27 @@ List<GapSuggestion> analyseGaps(GapRequest request) {
   return result;
 }
 
+GapSuggestion _starter(
+  ClothingCategory category,
+  WardrobeColour colour,
+  Formality formality,
+  Occasion? occasion,
+) => GapSuggestion(
+  category: category,
+  colour: colour,
+  formality: formality,
+  kind: GapKind.needed,
+  newOutfits: 0,
+  partnerCount: 0,
+  title:
+      '${colour.label} ${formality.label.toLowerCase()} '
+      '${category.label.toLowerCase()}',
+  explanation:
+      'You have no ${formality.label.toLowerCase()} '
+      '${category.labelPlural.toLowerCase()}'
+      '${occasion == null ? '' : ' for ${occasion.label.toLowerCase()}'} yet.',
+);
+
 GapSuggestion? _evaluate(
   GapRequest request,
   List<ClothingItem> owned,
@@ -217,13 +283,18 @@ GapSuggestion? _evaluate(
     category: category,
     primaryColour: colour,
     formality: formality,
+    occasions: {?request.occasion},
     createdAt: DateTime.utc(2000),
     updatedAt: DateTime.utc(2000),
   );
+  final forEvent = request.occasion == null
+      ? ''
+      : ' for ${request.occasion!.label.toLowerCase()}';
   final outfits = recommend(
     RecommendationRequest(
       items: owned,
       preferences: request.preferences,
+      occasion: request.occasion,
       limit: _unlimited,
       mustInclude: imaginary,
     ),
@@ -262,7 +333,7 @@ GapSuggestion? _evaluate(
       explanation:
           "You can't put together a complete outfit yet. This would make "
           '${outfits.length} ${outfits.length == 1 ? 'outfit' : 'outfits'} '
-          'possible.',
+          'possible$forEvent.',
     );
   }
 
@@ -283,7 +354,7 @@ GapSuggestion? _evaluate(
     title: title,
     explanation:
         'Would pair with $partnerCount of your items, adding '
-        '${good.length} good outfits.'
+        '${good.length} good outfits$forEvent.'
         '${ownedOfColour == 0 ? ' You have no ${colour.label.toLowerCase()} '
                   '${category.labelPlural.toLowerCase()} yet.' : ''}',
   );

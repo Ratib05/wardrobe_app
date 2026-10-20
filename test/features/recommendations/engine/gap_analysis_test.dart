@@ -209,4 +209,116 @@ void main() {
       0,
     );
   });
+
+  group('planning for an event', () {
+    ClothingItem smart(String id, ClothingCategory c) => item(
+      id: id,
+      category: c,
+      primaryColour: WardrobeColour.navy,
+      formality: Formality.smart,
+    );
+
+    test('a casual-only wardrobe gets a smart starter set', () {
+      final items = [
+        for (var i = 0; i < 2; i++) neutral('t$i', ClothingCategory.top),
+        neutral('b', ClothingCategory.bottom),
+        neutral('s', ClothingCategory.footwear),
+      ];
+      final result = analyseGaps(
+        GapRequest(
+          items: items,
+          formality: Formality.smart,
+          occasion: Occasion.work,
+        ),
+      );
+      expect(result.map((s) => s.category).toSet(), {
+        ClothingCategory.top,
+        ClothingCategory.bottom,
+        ClothingCategory.footwear,
+      });
+      for (final s in result) {
+        expect(s.kind, GapKind.needed);
+        expect(s.formality, Formality.smart);
+        expect(s.colour.isNeutral, isTrue);
+      }
+      expect(
+        result
+            .firstWhere((s) => s.category == ClothingCategory.footwear)
+            .explanation,
+        'You have no smart shoes for work yet.',
+      );
+    });
+
+    test('only the missing smart basics are suggested', () {
+      final items = [
+        smart('b', ClothingCategory.bottom),
+        smart('s', ClothingCategory.footwear),
+      ];
+      final result = analyseGaps(
+        GapRequest(items: items, formality: Formality.smart),
+      );
+      expect(result.single.category, ClothingCategory.top);
+      expect(result.single.kind, GapKind.needed);
+    });
+
+    test('a hidden starter makes way for the next neutral', () {
+      final items = [neutral('t', ClothingCategory.top)];
+      GapRequest request(Set<String> hidden) => GapRequest(
+        items: items,
+        formality: Formality.smart,
+        excludedKeys: hidden,
+      );
+      final first = analyseGaps(
+        request(const {}),
+      ).firstWhere((s) => s.category == ClothingCategory.footwear);
+      final next = analyseGaps(
+        request({first.key}),
+      ).firstWhere((s) => s.category == ClothingCategory.footwear);
+      expect(next.colour, isNot(first.colour));
+    });
+
+    test('items for another occasion do not count', () {
+      final items = [
+        smart('s', ClothingCategory.footwear),
+        item(
+          id: 'lounge',
+          category: ClothingCategory.top,
+          primaryColour: WardrobeColour.navy,
+          formality: Formality.smart,
+          occasions: {Occasion.lounge},
+        ),
+        item(
+          id: 'any',
+          category: ClothingCategory.bottom,
+          primaryColour: WardrobeColour.navy,
+          formality: Formality.smart,
+        ),
+      ];
+      final result = analyseGaps(
+        GapRequest(
+          items: items,
+          formality: Formality.smart,
+          occasion: Occasion.work,
+        ),
+      );
+      // The lounge top is ignored, so a top is still needed; the untagged
+      // bottom is kept.
+      expect(result.single.category, ClothingCategory.top);
+      expect(result.single.kind, GapKind.needed);
+      expect(result.single.partners.map((p) => p.id), contains('any'));
+      expect(
+        result.single.partners.map((p) => p.id),
+        isNot(contains('lounge')),
+      );
+    });
+
+    test('tops only, with no event, still suggests the missing basics', () {
+      final items = [neutral('t', ClothingCategory.top)];
+      final result = analyseGaps(GapRequest(items: items));
+      expect(result.map((s) => s.category).toSet(), {
+        ClothingCategory.bottom,
+        ClothingCategory.footwear,
+      });
+    });
+  });
 }
