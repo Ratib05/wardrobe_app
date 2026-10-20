@@ -32,6 +32,7 @@ class GapSuggestion {
     required this.title,
     required this.explanation,
     this.partners = const [],
+    this.examples = const [],
   });
 
   final ClothingCategory category;
@@ -51,8 +52,17 @@ class GapSuggestion {
   /// The owned items it would pair with, most often first.
   final List<ClothingItem> partners;
 
+  /// Up to [maxExamples] complete outfits it would create, best first. The
+  /// item itself is the one whose id starts with `gap:` ([isGapItem]).
+  final List<List<ClothingItem>> examples;
+
   String get key => gapKey(category, colour, formality);
 }
+
+const maxExamples = 3;
+
+/// Whether [item] is the imagined item of a suggestion, not one you own.
+bool isGapItem(ClothingItem item) => item.id.startsWith('gap:');
 
 class GapRequest {
   const GapRequest({
@@ -507,6 +517,21 @@ GapSuggestion? _evaluate(
       ]),
   }.length;
 
+  // Best outfit of each distinct combination (outfits are ranked already).
+  List<List<ClothingItem>> examples(Iterable<Recommendation> recs) {
+    final seen = <String>{};
+    return [
+      for (final r in recs)
+        if (seen.add(
+          outfitFingerprint([
+            for (final i in r.items)
+              if (i.category != ClothingCategory.outerwear) i.id,
+          ]),
+        ))
+          r.items,
+    ].take(maxExamples).toList();
+  }
+
   if (!canMakeOutfits) {
     if (outfits.isEmpty) return null;
     final neededPartners = partners(outfits);
@@ -519,6 +544,7 @@ GapSuggestion? _evaluate(
       newOutfits: count,
       partnerCount: neededPartners.length,
       partners: neededPartners,
+      examples: examples(outfits),
       title: title,
       explanation:
           "You can't put together a complete outfit yet. This would make "
@@ -558,6 +584,7 @@ GapSuggestion? _evaluate(
     newOutfits: count,
     partnerCount: goodPartners.length,
     partners: goodPartners,
+    examples: examples(good),
     title: title,
     explanation: explanation,
   );

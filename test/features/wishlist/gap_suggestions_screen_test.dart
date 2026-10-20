@@ -32,7 +32,8 @@ void main() {
     await openGaps(tester);
     expect(find.text('Black casual shoes'), findsOneWidget);
     expect(find.text('Needed'), findsWidgets);
-    expect(find.text('PAIRS WITH'), findsWidgets);
+    expect(find.text('EXAMPLE OUTFITS'), findsWidgets);
+    expect(find.byKey(const Key('gap-new-item')), findsWidgets);
     expect(
       find.textContaining('This would make 6 outfits possible'),
       findsWidgets,

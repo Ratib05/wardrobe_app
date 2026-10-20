@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme.dart';
 import '../../app/widgets/count_chip.dart';
 import '../../app/widgets/clothing_photo.dart';
+import '../../app/widgets/garment_silhouette.dart';
+import '../../core/clothing_item.dart';
 import '../../app/widgets/error_view.dart';
 import '../../core/wardrobe_values.dart';
 import '../wardrobe/wardrobe_providers.dart';
@@ -188,6 +190,26 @@ class _IdeaCard extends StatelessWidget {
   final VoidCallback onAdd;
   final VoidCallback onDismiss;
 
+  /// An owned item as its photo; the item to buy as a dashed outline.
+  Widget _tile(ClothingItem i) => Tooltip(
+    message: isGapItem(i) ? suggestion.title : i.name,
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: isGapItem(i)
+          ? SizedBox(
+              key: const Key('gap-new-item'),
+              width: 56,
+              height: 56,
+              child: GarmentSilhouette(
+                category: i.category,
+                colour: i.primaryColour,
+                dashed: true,
+              ),
+            )
+          : ClothingPhoto(i, size: 56),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final s = suggestion;
@@ -250,24 +272,17 @@ class _IdeaCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(s.explanation),
-              if (s.partners.isNotEmpty) ...[
+              if (s.examples.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                Text('PAIRS WITH', style: monoCaption(context)),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final p in s.partners.take(5))
-                      Tooltip(
-                        message: p.name,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: ClothingPhoto(p, size: 44),
-                        ),
-                      ),
-                  ],
-                ),
+                Text('EXAMPLE OUTFITS', style: monoCaption(context)),
+                for (final outfit in s.examples) ...[
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [for (final i in outfit) _tile(i)],
+                  ),
+                ],
               ],
               const SizedBox(height: 12),
               Wrap(

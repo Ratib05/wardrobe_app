@@ -336,6 +336,33 @@ void main() {
     );
   });
 
+  test('examples are distinct complete outfits that include the new item', () {
+    final items = [
+      for (var i = 0; i < 3; i++) neutral('t$i', ClothingCategory.top),
+      for (var i = 0; i < 3; i++) neutral('b$i', ClothingCategory.bottom),
+      neutral('s', ClothingCategory.footwear),
+      neutral('c', ClothingCategory.outerwear),
+    ];
+    final shoes = analyseGaps(
+      GapRequest(items: items),
+    ).firstWhere((s) => s.category == ClothingCategory.footwear);
+    expect(shoes.examples, hasLength(maxExamples));
+    final bases = <String>{};
+    for (final outfit in shoes.examples) {
+      expect(outfit.where(isGapItem), hasLength(1));
+      expect(outfit.singleWhere(isGapItem).category, ClothingCategory.footwear);
+      expect(outfit.any((i) => i.category == ClothingCategory.top), isTrue);
+      expect(outfit.any((i) => i.category == ClothingCategory.bottom), isTrue);
+      bases.add(
+        outfit
+            .where((i) => i.category != ClothingCategory.outerwear)
+            .map((i) => i.id)
+            .join('|'),
+      );
+    }
+    expect(bases, hasLength(maxExamples)); // coat variants are not repeats
+  });
+
   test('archived items are ignored', () {
     final items = [
       item(id: 't', category: ClothingCategory.top, isArchived: true),
