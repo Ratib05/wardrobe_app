@@ -102,6 +102,17 @@ class PreferencesScreen extends ConsumerWidget {
                     p.excludedStyles,
                     PreferenceType.excludedStyle,
                   ),
+                  SwitchListTile(
+                    key: const Key('avoid-one-colour'),
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Avoid one-colour outfits'),
+                    subtitle: const Text(
+                      'Hide suggestions where the top and bottom are the '
+                      'same or a similar colour.',
+                    ),
+                    value: p.avoidOneColour,
+                    onChanged: repo.setAvoidOneColour,
+                  ),
                   Text(
                     'Avoided colours and styles are never recommended.',
                     style: Theme.of(context).textTheme.bodySmall,

@@ -83,7 +83,7 @@ Implemented as one page ("Gaps & wishlist" in the sidebar), not separate screens
 Implemented as a small page reached from the sidebar. Backup and restore have their own page, "Backup & restore": storage tiles (database size, photos size and count, data folder with Open folder), an export card with the suggested file name and approximate size, a restore card that explains the automatic safety copy, and a list of recent backups and safety copies.
 
 - **Score weights:** one slider per scoring factor. Values are relative; the shares shown next to the sliders are rescaled to add up to 100. "Save weights" stores them, "Reset to defaults" restores 25/20/15/15/10/10/5. They apply to Suggestions, the Outfit check in the builder, and the shoe ranking.
-- Recommendation preferences (liked and avoided colours and styles).
+- Recommendation preferences (liked and avoided colours and styles, and an "Avoid one-colour outfits" switch that hides suggestions whose top and bottom are the same or a similar colour).
 - Reset dismissed recommendations.
 - App version.
 

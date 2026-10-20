@@ -43,8 +43,14 @@ class RecommendationRepository {
         WardrobeColour.values,
       ),
       excludedStyles: values(PreferenceType.excludedStyle, StyleTag.values),
+      avoidOneColour: rows.any(
+        (r) => r.preferenceType == PreferenceType.avoidOneColour,
+      ),
     );
   }
+
+  Future<void> setAvoidOneColour(bool enabled) =>
+      setPreference(PreferenceType.avoidOneColour, 'on', enabled);
 
   /// Custom score weights as fractions summing to 1, or null for defaults.
   Stream<Map<ScoreFactor, double>?> watchWeights() =>
@@ -95,7 +101,9 @@ class RecommendationRepository {
     PreferenceType.excludedColour => PreferenceType.preferredColour,
     PreferenceType.preferredStyle => PreferenceType.excludedStyle,
     PreferenceType.excludedStyle => PreferenceType.preferredStyle,
-    PreferenceType.preferredFormality || PreferenceType.scoreWeight => null,
+    PreferenceType.preferredFormality ||
+    PreferenceType.scoreWeight ||
+    PreferenceType.avoidOneColour => null,
   };
 
   /// Turns a preference on or off. Preferring and avoiding the same colour

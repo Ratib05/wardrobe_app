@@ -22,6 +22,31 @@ void main() {
     expect(c, isNotEmpty);
   });
 
+  test('coloursAlike', () {
+    bool alike(WardrobeColour a, WardrobeColour b) =>
+        coloursAlike(a, b) && coloursAlike(b, a);
+    expect(alike(WardrobeColour.navy, WardrobeColour.navy), isTrue);
+    expect(alike(WardrobeColour.white, WardrobeColour.cream), isTrue);
+    expect(alike(WardrobeColour.blue, WardrobeColour.denim), isTrue);
+    expect(alike(WardrobeColour.navy, WardrobeColour.denim), isTrue);
+    expect(alike(WardrobeColour.beige, WardrobeColour.khaki), isTrue);
+    expect(alike(WardrobeColour.red, WardrobeColour.maroon), isTrue);
+    // Overlapping groups don't chain: navy~denim and denim~blue, not navy~blue.
+    expect(coloursAlike(WardrobeColour.navy, WardrobeColour.blue), isFalse);
+    expect(
+      coloursAlike(WardrobeColour.lightBlue, WardrobeColour.denim),
+      isFalse,
+    );
+    expect(coloursAlike(WardrobeColour.navy, WardrobeColour.black), isFalse);
+    expect(coloursAlike(WardrobeColour.white, WardrobeColour.black), isFalse);
+    expect(coloursAlike(WardrobeColour.grey, WardrobeColour.pink), isFalse);
+    // Multicolour is never "one colour", even with itself.
+    expect(
+      coloursAlike(WardrobeColour.multicolour, WardrobeColour.multicolour),
+      isFalse,
+    );
+  });
+
   test('colourScore of neutrals is 1.0 with a reason', () {
     final s = colourScore([
       item(primaryColour: WardrobeColour.navy),

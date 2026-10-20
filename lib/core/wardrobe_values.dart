@@ -214,4 +214,8 @@ enum PreferenceType {
 
   /// Stored value is a ScoreFactor name; the strength is in `weight`.
   scoreWeight,
+
+  /// On when a row exists (value `on`): hide outfits whose top and bottom
+  /// are alike in colour.
+  avoidOneColour,
 }

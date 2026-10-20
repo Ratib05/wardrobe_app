@@ -44,4 +44,23 @@ void main() {
     expect(rows.single.preferenceType, PreferenceType.excludedColour);
     expect(rows.single.preferenceValue, 'navy');
   });
+
+  testApp('the one-colour switch stores the preference', (tester, paths) async {
+    await pumpApp(tester, paths: paths);
+    await tester.tap(find.byKey(const Key('nav-Settings')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Recommendation preferences'));
+    await tester.pumpAndSettle();
+
+    final toggle = find.byKey(const Key('avoid-one-colour'));
+    await tester.ensureVisible(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(toggle);
+    await pumpUntil(tester, () => tester.widget<SwitchListTile>(toggle).value);
+    final db = containerOf(tester).read(appDatabaseProvider);
+    final rows = (await tester.runAsync(
+      () => db.select(db.userPreferences).get(),
+    ))!;
+    expect(rows.single.preferenceType, PreferenceType.avoidOneColour);
+  });
 }

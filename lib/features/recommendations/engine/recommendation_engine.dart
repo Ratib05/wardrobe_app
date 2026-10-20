@@ -265,6 +265,7 @@ List<Recommendation> recommend(RecommendationRequest request) =>
         if (hidden.contains(outfitFingerprint(chosen.map((i) => i.id)))) {
           return;
         }
+        if (request.preferences.avoidOneColour && _oneColour(chosen)) return;
         for (final coat in coatOptions) {
           final outfit = [...chosen, ?coat];
           final rec = _score(template, outfit, request, weights);
@@ -290,6 +291,15 @@ List<Recommendation> recommend(RecommendationRequest request) =>
         : results,
     total: results.length,
   );
+}
+
+/// Whether the top and bottom are alike in colour (false without both).
+bool _oneColour(List<ClothingItem> items) {
+  WardrobeColour? colourOf(ClothingCategory c) =>
+      items.where((i) => i.category == c).firstOrNull?.primaryColour;
+  final top = colourOf(ClothingCategory.top);
+  final bottom = colourOf(ClothingCategory.bottom);
+  return top != null && bottom != null && coloursAlike(top, bottom);
 }
 
 Recommendation? _score(

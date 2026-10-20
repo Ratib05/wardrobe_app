@@ -41,6 +41,7 @@ class RecommendationPreferences {
     this.preferredFormalities = const {},
     this.excludedColours = const {},
     this.excludedStyles = const {},
+    this.avoidOneColour = false,
   });
 
   final Set<WardrobeColour> preferredColours;
@@ -48,6 +49,9 @@ class RecommendationPreferences {
   final Set<Formality> preferredFormalities;
   final Set<WardrobeColour> excludedColours;
   final Set<StyleTag> excludedStyles;
+
+  /// Hide outfits whose top and bottom are alike ([coloursAlike]).
+  final bool avoidOneColour;
 
   bool get hasPreferred =>
       preferredColours.isNotEmpty ||
@@ -82,6 +86,34 @@ const clashingColourPairs = <(WardrobeColour, WardrobeColour)>[
 
 bool coloursClash(WardrobeColour a, WardrobeColour b) => clashingColourPairs
     .any((p) => (p.$1 == a && p.$2 == b) || (p.$1 == b && p.$2 == a));
+
+/// Colours that look alike although their families differ (neutrals share
+/// one family, so family alone can't tell navy from white). Groups may
+/// overlap; two colours are alike only when one group holds both.
+const similarColourGroups = <Set<WardrobeColour>>[
+  {WardrobeColour.black, WardrobeColour.charcoal},
+  {WardrobeColour.navy, WardrobeColour.denim},
+  {WardrobeColour.denim, WardrobeColour.blue},
+  {WardrobeColour.lightGrey, WardrobeColour.grey},
+  {WardrobeColour.white, WardrobeColour.cream},
+  {
+    WardrobeColour.beige,
+    WardrobeColour.stone,
+    WardrobeColour.tan,
+    WardrobeColour.khaki,
+  },
+  {WardrobeColour.brown, WardrobeColour.darkBrown},
+];
+
+/// Same colour, same non-neutral family, or listed in [similarColourGroups].
+/// Multicolour is never alike.
+bool coloursAlike(WardrobeColour a, WardrobeColour b) {
+  if (a.family == ColourFamily.multi || b.family == ColourFamily.multi) {
+    return false;
+  }
+  if (a == b || (a.family == b.family && !a.isNeutral)) return true;
+  return similarColourGroups.any((g) => g.contains(a) && g.contains(b));
+}
 
 /// Neutral with anything 1.0; same colour or family 0.8; clash 0.0;
 /// otherwise 0.5. A missing colour scores 0.5.

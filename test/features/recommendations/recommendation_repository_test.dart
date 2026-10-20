@@ -41,6 +41,14 @@ void main() {
     expect((await repo.watchPreferences().first).excludedColours, isEmpty);
   });
 
+  test('avoid one-colour outfits can be turned on and off', () async {
+    expect((await repo.watchPreferences().first).avoidOneColour, isFalse);
+    await repo.setAvoidOneColour(true);
+    expect((await repo.watchPreferences().first).avoidOneColour, isTrue);
+    await repo.setAvoidOneColour(false);
+    expect((await repo.watchPreferences().first).avoidOneColour, isFalse);
+  });
+
   test('latest rating wins; dismiss can be undone', () async {
     await repo.recordFeedback('fp', FeedbackType.rated, rating: 2);
     await repo.recordFeedback('fp', FeedbackType.rated, rating: 4);

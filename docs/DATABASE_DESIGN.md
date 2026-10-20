@@ -212,4 +212,8 @@ Changes from version 1 (migration `from1To2`, tested in `test/drift/wardrobe/mig
 - `user_preferences.weight` (real, nullable): used by rows of preference type `scoreWeight` (value = a scoring factor name) to hold the custom score weights. No schema change was needed for the new type.
 - Formality values were renamed to match the design: `loungewear` becomes `relaxed` and `business` becomes `smart` in `clothing_items.formality`, `wishlist_items.formality` and in `user_preferences` rows of type `preferredFormality`. `casual`, `smartCasual` and `formal` are unchanged.
 
+Later additions without a schema change:
+
+- Preference type `avoidOneColour`: a single `user_preferences` row (value `on`) means the "Avoid one-colour outfits" switch is on; no row means off. An app build older than this type cannot read a database or backup that contains the row.
+
 Before the app opens a database whose schema is older than the app's, it copies the file to `safety-copies/wardrobe-before-schema-v<N>-<timestamp>.db`. Older backups are migrated when they are validated during a restore.

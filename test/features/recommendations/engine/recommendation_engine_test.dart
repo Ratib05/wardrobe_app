@@ -132,6 +132,34 @@ void main() {
     expect(liked.first.fingerprint, fp2);
   });
 
+  test('avoidOneColour hides alike tops and bottoms only', () {
+    ClothingItem coloured(String id, ClothingCategory c, WardrobeColour? col) =>
+        item(id: id, category: c, primaryColour: col);
+    final items = [
+      coloured('navy-top', ClothingCategory.top, WardrobeColour.navy),
+      coloured('white-top', ClothingCategory.top, WardrobeColour.white),
+      coloured('plain-top', ClothingCategory.top, null),
+      coloured('jeans', ClothingCategory.bottom, WardrobeColour.denim),
+      // Shoes alike to the jeans don't count.
+      coloured('shoes', ClothingCategory.footwear, WardrobeColour.navy),
+      coloured('dress', ClothingCategory.onePiece, WardrobeColour.navy),
+    ];
+    Set<String> fingerprints({required bool avoid}) => recommend(
+      RecommendationRequest(
+        items: items,
+        preferences: RecommendationPreferences(avoidOneColour: avoid),
+      ),
+    ).map((r) => r.fingerprint).toSet();
+
+    final navyOnNavy = outfitFingerprint(['navy-top', 'jeans', 'shoes']);
+    expect(fingerprints(avoid: false), contains(navyOnNavy));
+    expect(fingerprints(avoid: true), {
+      outfitFingerprint(['white-top', 'jeans', 'shoes']),
+      outfitFingerprint(['plain-top', 'jeans', 'shoes']),
+      outfitFingerprint(['dress', 'shoes']),
+    });
+  });
+
   test('dismissing or saving one coat variant hides them all', () {
     final items = [top('t'), bottom('b'), shoes('s1'), shoes('s2')];
     final withCoats = [...items, coat('c1'), coat('c2')];
