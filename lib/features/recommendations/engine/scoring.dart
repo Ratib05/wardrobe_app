@@ -60,11 +60,15 @@ class FeedbackSummary {
     this.liked = false,
     this.dismissed = false,
     this.latestRating,
+    this.savedOutfit = false,
   });
 
   final bool liked;
   final bool dismissed;
   final int? latestRating;
+
+  /// Currently saved as an outfit (hidden from suggestions).
+  final bool savedOutfit;
 }
 
 /// Colour pairs that clash regardless of family rules.

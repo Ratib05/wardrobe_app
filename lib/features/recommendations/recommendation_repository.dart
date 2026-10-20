@@ -115,8 +115,8 @@ class RecommendationRepository {
         );
       });
 
-  /// Per-combination feedback keyed by fingerprint. Saved outfits count as
-  /// liked.
+  /// Per-combination feedback keyed by fingerprint, including which
+  /// combinations are currently saved outfits.
   Future<Map<String, FeedbackSummary>> feedbackSummaries() async {
     final liked = <String>{};
     final dismissed = <String>{};
@@ -134,13 +134,14 @@ class RecommendationRepository {
           if (r != null) ratings[fp] = r; // oldest first, so last wins
       }
     }
-    liked.addAll(await _outfits.savedFingerprints());
+    final saved = await _outfits.savedFingerprints();
     return {
-      for (final fp in {...liked, ...dismissed, ...ratings.keys})
+      for (final fp in {...liked, ...dismissed, ...ratings.keys, ...saved})
         fp: FeedbackSummary(
           liked: liked.contains(fp),
           dismissed: dismissed.contains(fp),
           latestRating: ratings[fp],
+          savedOutfit: saved.contains(fp),
         ),
     };
   }

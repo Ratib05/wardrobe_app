@@ -132,6 +132,30 @@ void main() {
     expect(liked.first.fingerprint, fp2);
   });
 
+  test('dismissing or saving one coat variant hides them all', () {
+    final items = [top('t'), bottom('b'), shoes('s1'), shoes('s2')];
+    final withCoats = [...items, coat('c1'), coat('c2')];
+    final kept = outfitFingerprint(['t', 'b', 's2']); // s1 variants hidden
+    for (final summary in const [
+      FeedbackSummary(dismissed: true),
+      FeedbackSummary(savedOutfit: true),
+    ]) {
+      final recs = recommend(
+        RecommendationRequest(
+          items: withCoats,
+          feedback: {
+            outfitFingerprint(['t', 'b', 's1', 'c1']): summary,
+          },
+        ),
+      );
+      expect(recs.map((r) => r.fingerprint).toSet(), {
+        kept,
+        outfitFingerprint(['t', 'b', 's2', 'c1']),
+        outfitFingerprint(['t', 'b', 's2', 'c2']),
+      });
+    }
+  });
+
   test('every reason comes from a factor scoring at least 0.75', () {
     final items = [
       top('t', colour: WardrobeColour.navy),

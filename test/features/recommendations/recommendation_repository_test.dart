@@ -77,10 +77,12 @@ void main() {
     expect((await repo.feedbackSummaries())[rec.fingerprint]!.liked, isTrue);
   });
 
-  test('a saved outfit counts as liked even without feedback rows', () async {
+  test('a saved outfit is flagged even without feedback rows', () async {
     await outfits.save(name: 'Mine', itemIds: ['t', 'b', 's']);
     final fp = outfitFingerprint(['t', 'b', 's']);
-    expect((await repo.feedbackSummaries())[fp]!.liked, isTrue);
+    expect((await repo.feedbackSummaries())[fp]!.savedOutfit, isTrue);
+    await outfits.delete((await db.select(db.outfits).get()).single.id);
+    expect(await repo.feedbackSummaries(), isEmpty);
   });
 
   group('score weights', () {

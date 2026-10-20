@@ -84,19 +84,13 @@ void main() {
     await pumpUntilFound(tester, find.byType(RecommendationCard));
   });
 
-  testApp('save creates an outfit; rating records feedback', (
+  testApp('rating records feedback; save creates an outfit and hides it', (
     tester,
     paths,
   ) async {
     await pumpApp(tester, paths: paths, items: wardrobe);
     await openRecommendations(tester);
-    await tester.tap(find.text('Save outfit'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
-    await pumpUntilFound(tester, find.text('Saved'));
     final db = containerOf(tester).read(appDatabaseProvider);
-    final outfits = (await tester.runAsync(() => db.select(db.outfits).get()))!;
-    expect(outfits, hasLength(1));
 
     await expandWhy(tester);
     await tester.ensureVisible(find.byTooltip('Rate'));
@@ -110,6 +104,14 @@ void main() {
     ))!;
     final rated = rows.where((r) => r.feedbackType == FeedbackType.rated);
     expect(rated.single.rating, 4);
+
+    await tester.ensureVisible(find.text('Save outfit'));
+    await tester.tap(find.text('Save outfit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await pumpUntilGone(tester, find.byType(RecommendationCard));
+    final outfits = (await tester.runAsync(() => db.select(db.outfits).get()))!;
+    expect(outfits, hasLength(1));
   });
 
   testApp('Must include narrows suggestions only after Show suggestions', (

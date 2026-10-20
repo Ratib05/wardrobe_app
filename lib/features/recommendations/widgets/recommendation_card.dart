@@ -22,7 +22,6 @@ class RecommendationCard extends StatelessWidget {
     super.key,
     required this.recommendation,
     required this.rank,
-    required this.saved,
     required this.onSave,
     required this.onFavourite,
     required this.onRate,
@@ -31,9 +30,6 @@ class RecommendationCard extends StatelessWidget {
 
   final Recommendation recommendation;
   final int rank;
-
-  /// Already saved as an outfit.
-  final bool saved;
   final VoidCallback onSave;
   final VoidCallback onFavourite;
   final ValueChanged<int> onRate;
@@ -159,7 +155,7 @@ class RecommendationCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         TextButton.icon(
-                          onPressed: saved ? null : onFavourite,
+                          onPressed: onFavourite,
                           icon: const Icon(Icons.favorite_border, size: 18),
                           label: const Text('Favourite'),
                         ),
@@ -212,12 +208,9 @@ class RecommendationCard extends StatelessWidget {
                 ),
                 FilledButton.icon(
                   key: const Key('save-outfit'),
-                  onPressed: saved ? null : onSave,
-                  icon: Icon(
-                    saved ? Icons.check : Icons.bookmark_add_outlined,
-                    size: 18,
-                  ),
-                  label: Text(saved ? 'Saved' : 'Save outfit'),
+                  onPressed: onSave,
+                  icon: const Icon(Icons.bookmark_add_outlined, size: 18),
+                  label: const Text('Save outfit'),
                 ),
               ],
             ),

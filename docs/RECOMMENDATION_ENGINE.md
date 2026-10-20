@@ -119,7 +119,7 @@ Not archived, condition not "Needs repair" ("unavailable"), primary colour not i
 ### Candidate generation
 - Each category is capped (15 items; outerwear 6). Favourites are kept first, then items matching the selected occasion, then the selected season, then by id. Items tied at the cut-off take turns by date: the window moves forward by the number of free slots each day, so every tied item is shown within a few days (30 tops: 2 days). The same date always gives the same list, and the Suggestions screen passes today's date; without a date (gap analysis, item stats) the order is fixed by id.
 - Every combination of a template's required categories is built, once without outerwear and once with each outerwear item.
-- A combination is identified by its fingerprint: sorted item ids joined with `|`. Dismissed fingerprints are removed.
+- A combination is identified by its fingerprint: sorted item ids joined with `|`. Combinations that are dismissed or currently saved as outfits are removed together with every coat variant: a candidate is skipped when its items other than outerwear match a dismissed or saved combination's items other than outerwear.
 - Results are ranked by score (highest first), ties broken by fingerprint, and the top 20 are returned. Identical inputs (including the date) always give identical output.
 
 ### Scoring (each factor 0 to 1; weighted sum)
@@ -131,7 +131,7 @@ Not archived, condition not "Needs repair" ("unavailable"), primary colour not i
 | Style (15%) | Mean over pairs: share a style tag 1.0, else 0.0; a pair with an untagged item 0.5. |
 | Season (10%) | Same rule as occasion. |
 | Preferences (10%) | Share of items matching a preferred colour, style or formality. |
-| Feedback (5%) | Latest rating r gives (r - 1) / 4; otherwise liked, saved, or already a saved outfit gives 1.0. |
+| Feedback (5%) | Latest rating r gives (r - 1) / 4; otherwise liked or saved gives 1.0 (this only applies once the saved outfit has been deleted, since saved outfits are not suggested). |
 
 **Missing data:** a factor that cannot be judged (fewer than two items with a value, untagged items, no preferences, no feedback) scores a neutral 0.5, so incomplete items are never treated as incompatible.
 
@@ -141,8 +141,8 @@ Not archived, condition not "Needs repair" ("unavailable"), primary colour not i
 - Labels: 0.75 and above "Strong match", 0.55 and above "Good match", otherwise "Possible match". The score is also shown out of 100 (rounded), with per-factor points (weight × factor value, out of the factor's weight) in the expandable "Why this outfit" section.
 
 ### Feedback
-- Save creates an outfit and records "saved"; Favourite creates a favourite outfit and records "liked"; Rate records a rating from 1 to 5.
-- Dismiss hides that combination permanently. It can be undone immediately, and Settings will offer "Reset dismissed recommendations".
+- Save creates an outfit and records "saved"; Favourite creates a favourite outfit and records "liked"; Rate records a rating from 1 to 5. A saved outfit leaves the suggestions (with its coat variants) until the outfit is deleted.
+- "Not for me" hides that combination and its coat variants permanently. It can be undone immediately, and Settings offers "Reset dismissed recommendations".
 
 ### Differences from the original specification
 - "Unavailable" is implemented as condition = "Needs repair".

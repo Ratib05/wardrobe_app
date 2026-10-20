@@ -58,7 +58,6 @@ class RecommendationResults {
   const RecommendationResults(
     this.recommendations,
     this.emptyReason,
-    this.savedFingerprints,
     this.total,
   );
 
@@ -70,9 +69,6 @@ class RecommendationResults {
   /// Why there are no recommendations (null when some exist or the reason is
   /// simply that all of them were dismissed).
   final String? emptyReason;
-
-  /// Combinations already saved as outfits.
-  final Set<String> savedFingerprints;
 }
 
 /// Recomputed when the wardrobe or preferences change; call
@@ -87,9 +83,6 @@ final recommendationsProvider =
       final feedback = await ref
           .read(recommendationRepositoryProvider)
           .feedbackSummaries();
-      final saved = await ref
-          .read(outfitRepositoryProvider)
-          .savedFingerprints();
       final weights = await ref.watch(scoreWeightsProvider.future);
       final eligible = items.where((i) => isEligible(i, prefs)).toList();
       final must = filters.mustIncludeId == null
@@ -97,7 +90,9 @@ final recommendationsProvider =
           : items.where((i) => i.id == filters.mustIncludeId).firstOrNull;
       final result = await ref.read(recommendRunnerProvider)(
         RecommendationRequest(
-          items: eligible,
+          // All items, so hidden combinations with an unavailable coat still
+          // resolve; the engine skips ineligible items itself.
+          items: items,
           preferences: prefs,
           feedback: feedback,
           occasion: filters.occasion,
@@ -111,7 +106,6 @@ final recommendationsProvider =
       return RecommendationResults(
         result.top,
         result.top.isEmpty ? noResultsReason(eligible) : null,
-        saved,
         result.total,
       );
     });

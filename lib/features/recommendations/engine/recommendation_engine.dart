@@ -225,6 +225,19 @@ List<Recommendation> recommend(RecommendationRequest request) =>
   final must = request.mustInclude;
   if (must != null) pools[must.category] = [must];
 
+  // Dismissed and saved combinations are hidden with every coat variant,
+  // since the coat is optional and the variants rank side by side.
+  final categoryOf = {for (final i in request.items) i.id: i.category};
+  final hidden = {
+    for (final e in request.feedback.entries)
+      if (e.value.dismissed || e.value.savedOutfit)
+        outfitFingerprint(
+          e.key
+              .split('|')
+              .where((id) => categoryOf[id] != ClothingCategory.outerwear),
+        ),
+  };
+
   final results = <Recommendation>[];
   for (final template in outfitTemplates) {
     if (must != null &&
@@ -249,6 +262,9 @@ List<Recommendation> recommend(RecommendationRequest request) =>
 
     void walk(int depth, List<ClothingItem> chosen) {
       if (depth == lists.length) {
+        if (hidden.contains(outfitFingerprint(chosen.map((i) => i.id)))) {
+          return;
+        }
         for (final coat in coatOptions) {
           final outfit = [...chosen, ?coat];
           final rec = _score(template, outfit, request, weights);
@@ -284,7 +300,6 @@ Recommendation? _score(
 ) {
   final fingerprint = outfitFingerprint(items.map((i) => i.id));
   final feedback = request.feedback[fingerprint];
-  if (feedback?.dismissed ?? false) return null;
 
   final factors = <ScoreFactor, FactorScore>{
     ScoreFactor.colour: colourScore(items),
