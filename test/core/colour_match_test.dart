@@ -23,6 +23,7 @@ void main() {
     expect(nameOf(0x66733A), WardrobeColour.olive);
     expect(nameOf(0x701C2C), WardrobeColour.burgundy);
     expect(nameOf(0x5472A0), WardrobeColour.denim);
+    expect(nameOf(0x8CA6C6), WardrobeColour.lightDenim);
     expect(nameOf(0xDDCDB0), WardrobeColour.beige);
     expect(nameOf(0xA5502C), WardrobeColour.rust);
     expect(nameOf(0xF0F0F0), WardrobeColour.white);

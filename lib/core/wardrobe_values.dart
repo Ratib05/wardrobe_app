@@ -41,6 +41,7 @@ enum WardrobeColour {
   brown('Brown', ColourFamily.neutral, 0xFF6D4C41),
   darkBrown('Dark brown', ColourFamily.neutral, 0xFF3E2C20),
   denim('Denim', ColourFamily.neutral, 0xFF3F5E8C),
+  lightDenim('Light denim', ColourFamily.neutral, 0xFF8FA9C8),
   red('Red', ColourFamily.red, 0xFFD32F2F),
   burgundy('Burgundy', ColourFamily.red, 0xFF800020),
   maroon('Maroon', ColourFamily.red, 0xFF5E1914),

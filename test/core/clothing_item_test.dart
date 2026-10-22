@@ -66,6 +66,7 @@ void main() {
       WardrobeColour.brown,
       WardrobeColour.darkBrown,
       WardrobeColour.denim,
+      WardrobeColour.lightDenim,
     });
   });
 

@@ -29,6 +29,8 @@ void main() {
     expect(alike(WardrobeColour.white, WardrobeColour.cream), isTrue);
     expect(alike(WardrobeColour.blue, WardrobeColour.denim), isTrue);
     expect(alike(WardrobeColour.navy, WardrobeColour.denim), isTrue);
+    expect(alike(WardrobeColour.denim, WardrobeColour.lightDenim), isTrue);
+    expect(alike(WardrobeColour.lightDenim, WardrobeColour.lightBlue), isTrue);
     expect(alike(WardrobeColour.beige, WardrobeColour.khaki), isTrue);
     expect(alike(WardrobeColour.red, WardrobeColour.maroon), isTrue);
     // Overlapping groups don't chain: navy~denim and denim~blue, not navy~blue.

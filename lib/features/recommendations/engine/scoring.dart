@@ -94,6 +94,8 @@ const similarColourGroups = <Set<WardrobeColour>>[
   {WardrobeColour.black, WardrobeColour.charcoal},
   {WardrobeColour.navy, WardrobeColour.denim},
   {WardrobeColour.denim, WardrobeColour.blue},
+  {WardrobeColour.denim, WardrobeColour.lightDenim},
+  {WardrobeColour.lightDenim, WardrobeColour.lightBlue},
   {WardrobeColour.lightGrey, WardrobeColour.grey},
   {WardrobeColour.white, WardrobeColour.cream},
   {
