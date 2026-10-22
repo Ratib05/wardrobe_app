@@ -85,6 +85,22 @@ void main() {
     expect((await repo.feedbackSummaries())[rec.fingerprint]!.liked, isTrue);
   });
 
+  test(
+    'saveAsOutfit keeps the occasion and season it was suggested for',
+    () async {
+      final rec = recommend(RecommendationRequest(items: wardrobe)).single;
+      final id = await repo.saveAsOutfit(
+        rec,
+        name: 'Work pick',
+        occasion: Occasion.work,
+        season: Season.summer,
+      );
+      final saved = (await outfits.getById(id))!.outfit;
+      expect(saved.occasion, Occasion.work);
+      expect(saved.season, Season.summer);
+    },
+  );
+
   test('a saved outfit is flagged even without feedback rows', () async {
     await outfits.save(name: 'Mine', itemIds: ['t', 'b', 's']);
     final fp = outfitFingerprint(['t', 'b', 's']);

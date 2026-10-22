@@ -181,14 +181,19 @@ class RecommendationRepository {
   Future<int> resetDismissed() => _db.recommendationDao.deleteAllDismissed();
 
   /// Saves a recommendation as an outfit and records the feedback together.
+  /// [occasion] and [season] are the filters the suggestion was made for.
   Future<String> saveAsOutfit(
     Recommendation recommendation, {
     required String name,
     bool favourite = false,
+    Occasion? occasion,
+    Season? season,
   }) => _db.transaction(() async {
     final id = await _outfits.save(
       name: name,
       itemIds: [for (final i in recommendation.items) i.id],
+      occasion: occasion,
+      season: season,
       isFavourite: favourite,
     );
     await recordFeedback(

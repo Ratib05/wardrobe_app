@@ -360,6 +360,77 @@ void titleAndTotalTests() {
       expect(r.top, hasLength(5));
     });
 
+    group('one outfit per look', () {
+      // s2 shares a style with the top and bottom, so it always scores higher.
+      final items = [
+        for (final id in ['t1', 't2'])
+          item(
+            id: id,
+            category: ClothingCategory.top,
+            styleTags: {StyleTag.minimal},
+          ),
+        item(
+          id: 'b',
+          category: ClothingCategory.bottom,
+          styleTags: {StyleTag.minimal},
+        ),
+        shoes('s1'),
+        item(
+          id: 's2',
+          category: ClothingCategory.footwear,
+          styleTags: {StyleTag.minimal},
+        ),
+        coat('c'),
+      ];
+
+      test('keeps the best shoes and coat of each look', () {
+        final r = recommendWithTotal(
+          RecommendationRequest(items: items, onePerLook: true),
+        );
+        expect(r.total, 8);
+        // The untagged coat lowers the style score, so the best version has
+        // none.
+        expect(r.top.map((x) => x.items.map((i) => i.id).toSet()), [
+          {'t1', 'b', 's2'},
+          {'t2', 'b', 's2'},
+        ]);
+      });
+
+      test('a dress with two pairs of shoes gives one result', () {
+        final r = recommend(
+          RecommendationRequest(
+            items: [
+              item(id: 'd', category: ClothingCategory.onePiece),
+              shoes('s1'),
+              shoes('s2'),
+            ],
+            onePerLook: true,
+          ),
+        );
+        expect(r, hasLength(1));
+      });
+
+      test('off by default: every shoe and coat version is listed', () {
+        expect(recommend(RecommendationRequest(items: items)), hasLength(8));
+      });
+
+      test('dismissing one version brings back the next-best shoes', () {
+        final r = recommend(
+          RecommendationRequest(
+            items: items,
+            onePerLook: true,
+            feedback: {
+              outfitFingerprint(['t1', 'b', 's2']): const FeedbackSummary(
+                dismissed: true,
+              ),
+            },
+          ),
+        );
+        final t1 = r.firstWhere((x) => x.items.any((i) => i.id == 't1'));
+        expect(t1.items.map((i) => i.id), contains('s1'));
+      });
+    });
+
     test('points use custom weights and add up to the score', () {
       final items = [
         item(id: 't', category: ClothingCategory.top),

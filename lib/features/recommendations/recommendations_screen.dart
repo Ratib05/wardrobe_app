@@ -63,7 +63,13 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
     try {
       await ref
           .read(recommendationRepositoryProvider)
-          .saveAsOutfit(rec, name: name, favourite: favourite);
+          .saveAsOutfit(
+            rec,
+            name: name,
+            favourite: favourite,
+            occasion: _applied.occasion,
+            season: _applied.season,
+          );
       ref.invalidate(recommendationsProvider);
       if (mounted) {
         _snack(favourite ? 'Saved to favourites' : 'Outfit saved');

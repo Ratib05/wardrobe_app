@@ -61,7 +61,7 @@ Implemented. Slots, a picker and a live check, on one screen.
 
 Implemented.
 
-- **Header:** "Suggested outfits", with "Ranked from N valid combinations" (the engine's total before the top 20 are cut).
+- **Header:** "Suggested outfits", with "Ranked from N valid combinations" (the engine's total before the top 20 are cut). Each look (top and bottom, or dress) appears once, with its best shoes and coat.
 - **Filters:** Occasion, Season, Formality and Must include (an item that every suggestion must contain), plus a "Show suggestions" button. Changes are applied only when the button is pressed. The formality filter keeps items of that formality and items with no formality recorded.
 - **Card:** rank (#1), a generated title such as "Crisp and neutral" (from average formality and the colours), thumbnails with category captions, the score as "90 / 100" with the match label, and "Not for me" and "Save outfit" buttons. There is no wear tracking.
 - **Why this outfit** (expandable): seven factor bars with points out of each factor's maximum (for example 23/25, 13/20), the plain-language reasons, and Favourite and Rate.

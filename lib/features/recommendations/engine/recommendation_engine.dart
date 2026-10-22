@@ -117,6 +117,7 @@ class RecommendationRequest {
     this.weights,
     this.mustInclude,
     this.day,
+    this.onePerLook = false,
   });
 
   final List<ClothingItem> items;
@@ -142,6 +143,11 @@ class RecommendationRequest {
   /// When set, clothes cut by the per-category cap take turns by date (see
   /// [_capped]). Null keeps the order fixed by id.
   final DateTime? day;
+
+  /// When true, the top list keeps one outfit per look (the outfit without
+  /// its shoes and coat: top and bottom, or the dress), with its
+  /// best-scoring shoes and coat. The total still counts every combination.
+  final bool onePerLook;
 }
 
 const _fallbackReason = 'Meets the basic outfit rules';
@@ -285,13 +291,23 @@ List<Recommendation> recommend(RecommendationRequest request) =>
     final c = b.score.compareTo(a.score);
     return c != 0 ? c : a.fingerprint.compareTo(b.fingerprint);
   });
-  return (
-    top: results.length > request.limit
-        ? results.sublist(0, request.limit)
-        : results,
-    total: results.length,
-  );
+  // Results are sorted, so the first of each look is its best version.
+  final top = <Recommendation>[];
+  final looks = <String>{};
+  for (final r in results) {
+    if (top.length >= request.limit) break;
+    if (!request.onePerLook || looks.add(_look(r.items))) top.add(r);
+  }
+  return (top: top, total: results.length);
 }
+
+/// An outfit without its shoes and coat: the top and bottom, or the dress.
+String _look(List<ClothingItem> items) => outfitFingerprint([
+  for (final i in items)
+    if (i.category != ClothingCategory.footwear &&
+        i.category != ClothingCategory.outerwear)
+      i.id,
+]);
 
 /// Whether the top and bottom are alike in colour (false without both).
 bool _oneColour(List<ClothingItem> items) {

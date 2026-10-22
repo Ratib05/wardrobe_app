@@ -101,6 +101,7 @@ final recommendationsProvider =
           weights: weights,
           mustInclude: must,
           day: DateTime.now(),
+          onePerLook: true,
         ),
       );
       return RecommendationResults(

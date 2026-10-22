@@ -54,6 +54,23 @@ void main() {
     expect(find.textContaining('Scores use fixed rules'), findsOneWidget);
   });
 
+  testApp('a second pair of shoes does not add a second card', (
+    tester,
+    paths,
+  ) async {
+    await pumpApp(
+      tester,
+      paths: paths,
+      items: [
+        ...wardrobe,
+        item(id: 's2', name: 'Trainers', category: ClothingCategory.footwear),
+      ],
+    );
+    await openRecommendations(tester);
+    expect(find.byType(RecommendationCard), findsOneWidget);
+    expect(find.text('RANKED FROM 2 VALID COMBINATIONS'), findsOneWidget);
+  });
+
   testApp('Why this outfit lists seven factors with points', (
     tester,
     paths,
